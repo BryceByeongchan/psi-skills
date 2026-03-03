@@ -1,3 +1,4 @@
+
 __pycache__/
 *.pyc
 *.egg-info/
@@ -7,8 +8,5 @@ build/
 *.lock
 
 # Example projects: ignore generated psi output, keep only prompt.md
-examples/*/calc_db/
-examples/*/reports/
-examples/*/computers/
-examples/*/.claude/
-examples/*/debug_report.md
+examples/*/
+!examples/*/prompt.md

@@ -1,0 +1,2 @@
+[console_scripts]
+psi-cli = psi_cli.main:main

@@ -22,7 +22,6 @@ Skills are in `skills/psi-*/`. Each has a SKILL.md prompt and a self-contained P
 - `/psi-graph [id]` — Provenance DAG
 - `/psi-rebuild-index` — Rebuild indexes from front matter
 - `/psi-add-computer`, `/psi-list-computers`, `/psi-remove-computer` — Computer registry
-- `/psi-push-calc <id>`, `/psi-pull-calc <id>` — Sync files with remote HPC
 
 ### Key Rules
 

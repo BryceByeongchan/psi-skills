@@ -29,8 +29,6 @@ Invoke skills with `/` prefix in Claude Code:
 | `/psi-add-computer <name> <type> [hostname:...] [...]` | Register an HPC/local computer |
 | `/psi-list-computers` | List registered computers |
 | `/psi-remove-computer <name>` | Remove a computer |
-| `/psi-push-calc <id> [--all]` | Push calc files to remote HPC |
-| `/psi-pull-calc <id> [--all]` | Pull calc results from remote HPC |
 
 ## How It Works
 

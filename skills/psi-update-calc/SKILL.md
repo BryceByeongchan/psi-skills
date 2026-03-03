@@ -32,5 +32,3 @@ The script handles: frontmatter read/merge/write, index update, parent link chan
 
 - **Do NOT use sed to modify index files.** All index updates go through the script.
 - **Preserve the markdown body below frontmatter unchanged.**
-- When status changes to `submitted`: suggest `psi:push-calc` if not yet pushed.
-- When status changes to `completed`: suggest `psi:pull-calc` to retrieve results.

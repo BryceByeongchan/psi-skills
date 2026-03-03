@@ -16,8 +16,6 @@ skills/
 ├── psi-add-computer/   # Register a computer
 ├── psi-list-computers/ # List registered computers
 ├── psi-remove-computer/# Remove a computer
-├── psi-push-calc/      # Push files to remote HPC
-├── psi-pull-calc/      # Pull files from remote HPC
 └── psi-rebuild-index/  # Rebuild index from front matter
 ```
 

@@ -26,6 +26,7 @@ Invoke skills with `/` prefix in Claude Code:
 | `/psi-status` | Show project status summary |
 | `/psi-graph [id]` | Display provenance DAG |
 | `/psi-rebuild-index` | Rebuild index files from front matter |
+| `/psi-run-calc <calc_id>` | Run a calc: push, submit, monitor, pull |
 | `/psi-add-computer <name> <type> [hostname:...] [...]` | Register an HPC/local computer |
 | `/psi-list-computers` | List registered computers |
 | `/psi-update-computer <name> [field=value ...]` | Update a computer's configuration |

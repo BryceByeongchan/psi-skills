@@ -17,6 +17,7 @@ skills/
 ├── psi-list-computers/ # List registered computers
 ├── psi-remove-computer/# Remove a computer
 ├── psi-update-computer/# Update a computer's configuration
+├── psi-run-calc/       # Run a calculation on remote HPC
 └── psi-rebuild-index/  # Rebuild index from front matter
 ```
 

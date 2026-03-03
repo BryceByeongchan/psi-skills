@@ -17,6 +17,7 @@ psi:update-calc <id> [field=value ...]
 - Dot notation: `key_results.energy=-5.43` → nested dict update.
 - Comma-separated lists: `tags=silicon,relaxation` → list.
 - Status values: `status=completed`.
+- Sub-job updates: `subjobs.500.status=completed` → updates one sub-job's status via dot notation.
 
 ## Execution
 
@@ -32,3 +33,4 @@ The script handles: frontmatter read/merge/write, index update, parent link chan
 
 - **Do NOT use sed to modify index files.** All index updates go through the script.
 - **Preserve the markdown body below frontmatter unchanged.**
+- **Multi-job auto-aggregation**: When updating sub-job fields (e.g., `subjobs.500.status=completed`), the top-level `status` is automatically re-aggregated from all sub-job statuses unless you explicitly set `status=` in the same update. Aggregation: all planned → planned, any error → error, all completed → completed, otherwise → running.

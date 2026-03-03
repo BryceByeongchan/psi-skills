@@ -14,8 +14,8 @@ Skills are in `skills/psi-*/`. Each has a SKILL.md prompt and a self-contained P
 ### Quick Reference
 
 - `/psi-init` — Initialize `calc_db/` and `reports/` directories
-- `/psi-new-calc <title> <code> [parents:...] [tags:...] [computer:...]` — Create calculation
-- `/psi-update-calc <id> field=value ...` — Update calculation (supports dot notation: `key_results.energy=-5.43`)
+- `/psi-new-calc <title> <code> [parents:...] [tags:...] [computer:...] [type:multi] [subjobs:400,500,600]` — Create calculation
+- `/psi-update-calc <id> field=value ...` — Update calculation (supports dot notation: `key_results.energy=-5.43`, `subjobs.500.status=completed`)
 - `/psi-new-report <title> [calcs:...] [tags:...]` — Create report
 - `/psi-update-report <id> field=value ...` — Update report
 - `/psi-status` — Project summary
@@ -39,6 +39,23 @@ Skills are in `skills/psi-*/`. Each has a SKILL.md prompt and a self-contained P
 - If suitable calculations exist, reference them with `calcs:c001,c002,...` when creating the report.
 - If no suitable calculation exists, create one first with `/psi-new-calc`, then create the report referencing it.
 - Reports must always be grounded in actual calculation data with provenance links maintained.
+
+### Multi-Job Calculations
+
+Use `type:multi` for systematic parameter variations (convergence tests, parameter sweeps) where jobs share the same code but vary parameters:
+
+```
+/psi-new-calc "ENCUT Convergence" VASP type:multi subjobs:400,500,600 tags:encut,convergence
+```
+
+This creates a single calc with shared `code/` and per-subjob `{label}/input/`, `{label}/output/` directories. Sub-job statuses are tracked individually and auto-aggregated to the top-level status.
+
+Update sub-job status with dot notation:
+```
+/psi-update-calc c002 subjobs.500.status=completed
+```
+
+Run multi-job calcs with `/psi-run-calc` — sub-jobs are submitted sequentially with approval per script.
 
 ### Post-Processing
 

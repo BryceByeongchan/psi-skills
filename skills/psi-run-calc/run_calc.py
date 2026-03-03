@@ -19,8 +19,8 @@ import yaml
 _FM_PATTERN = re.compile(r"\A---\n(.*?)---\n?(.*)", re.DOTALL)
 
 CALC_KEY_ORDER = [
-    "id", "title", "date", "status", "code", "computer", "tags",
-    "parents", "children", "reports", "hpc_path", "job_id", "key_results", "notes",
+    "id", "title", "date", "status", "type", "code", "computer", "tags",
+    "parents", "children", "reports", "hpc_path", "subjobs", "job_id", "key_results", "notes",
 ]
 
 
@@ -367,6 +367,23 @@ def _update_index_status(calc_id: str, status: str) -> None:
             return
 
 
+def _aggregate_status(subjobs: dict) -> str:
+    statuses = [v.get("status", "planned") if isinstance(v, dict) else "planned" for v in subjobs.values()]
+    if not statuses:
+        return "planned"
+    if all(s == "planned" for s in statuses):
+        return "planned"
+    if any(s == "error" for s in statuses):
+        return "error"
+    if all(s == "completed" for s in statuses):
+        return "completed"
+    return "running"
+
+
+def _is_multi(metadata: dict) -> bool:
+    return metadata.get("type") == "multi"
+
+
 # --- Subcommands ---
 
 def cmd_preflight(calc_id: str) -> None:
@@ -384,10 +401,7 @@ def cmd_preflight(calc_id: str) -> None:
 
     # List local input/code files
     local_dir = readme.parent
-    input_files = []
-    input_dir = local_dir / "input"
-    if input_dir.exists():
-        input_files = [str(f.relative_to(input_dir)) for f in input_dir.rglob("*") if f.is_file()]
+    multi = _is_multi(metadata)
 
     code_files = []
     code_dir = local_dir / "code"
@@ -397,13 +411,12 @@ def cmd_preflight(calc_id: str) -> None:
     result = {
         "calc_id": calc_id,
         "status": metadata.get("status", ""),
+        "type": metadata.get("type", "single"),
         "code": metadata.get("code", ""),
         "computer": computer_name,
         "hostname": hostname,
         "ssh_connected": ssh_ok,
         "hpc_path": hpc_path,
-        "job_id": metadata.get("job_id", ""),
-        "input_files": input_files,
         "code_files": code_files,
         "scheduler": config.get("scheduler", ""),
         "account": config.get("account", ""),
@@ -411,6 +424,30 @@ def cmd_preflight(calc_id: str) -> None:
         "modules": config.get("modules", []),
         "job_template": config.get("job_template", ""),
     }
+
+    if multi:
+        subjobs = metadata.get("subjobs", {})
+        subjob_info = {}
+        for label, sj in subjobs.items():
+            label_str = str(label)
+            sj_input = []
+            sj_input_dir = local_dir / label_str / "input"
+            if sj_input_dir.exists():
+                sj_input = [str(f.relative_to(sj_input_dir)) for f in sj_input_dir.rglob("*") if f.is_file()]
+            subjob_info[label_str] = {
+                "status": sj.get("status", "planned") if isinstance(sj, dict) else "planned",
+                "job_id": sj.get("job_id", "") if isinstance(sj, dict) else "",
+                "input_files": sj_input,
+            }
+        result["subjobs"] = subjob_info
+    else:
+        input_files = []
+        input_dir = local_dir / "input"
+        if input_dir.exists():
+            input_files = [str(f.relative_to(input_dir)) for f in input_dir.rglob("*") if f.is_file()]
+        result["input_files"] = input_files
+        result["job_id"] = metadata.get("job_id", "")
+
     print(json.dumps(result, indent=2))
 
 
@@ -428,20 +465,12 @@ def cmd_push(calc_id: str) -> None:
     hpc_path = _ensure_hpc_path(metadata, body, readme, config, calc_id)
     local_dir = readme.parent
     remote_base = f"{hostname}:{hpc_path}"
+    multi = _is_multi(metadata)
 
     # Create remote directory
     _ssh_run(hostname, f"mkdir -p {hpc_path}", timeout=30)
 
-    # Push input/
-    input_dir = local_dir / "input"
-    if input_dir.exists():
-        _ssh_run(hostname, f"mkdir -p {hpc_path}input", timeout=30)
-        result = _rsync(f"{input_dir}/", f"{remote_base}input/")
-        if result.returncode != 0:
-            print(f"Error: rsync input/ failed: {result.stderr}", file=sys.stderr)
-            sys.exit(1)
-
-    # Push code/
+    # Push code/ (shared for both single and multi)
     code_dir = local_dir / "code"
     if code_dir.exists():
         _ssh_run(hostname, f"mkdir -p {hpc_path}code", timeout=30)
@@ -449,6 +478,29 @@ def cmd_push(calc_id: str) -> None:
         if result.returncode != 0:
             print(f"Error: rsync code/ failed: {result.stderr}", file=sys.stderr)
             sys.exit(1)
+
+    if multi:
+        # Push each subjob's input/
+        subjobs = metadata.get("subjobs", {})
+        for label in subjobs:
+            label_str = str(label)
+            input_dir = local_dir / label_str / "input"
+            if input_dir.exists():
+                remote_sj = f"{hpc_path}{label_str}/input"
+                _ssh_run(hostname, f"mkdir -p {remote_sj}", timeout=30)
+                result = _rsync(f"{input_dir}/", f"{hostname}:{remote_sj}/")
+                if result.returncode != 0:
+                    print(f"Error: rsync {label_str}/input/ failed: {result.stderr}", file=sys.stderr)
+                    sys.exit(1)
+    else:
+        # Push input/
+        input_dir = local_dir / "input"
+        if input_dir.exists():
+            _ssh_run(hostname, f"mkdir -p {hpc_path}input", timeout=30)
+            result = _rsync(f"{input_dir}/", f"{remote_base}input/")
+            if result.returncode != 0:
+                print(f"Error: rsync input/ failed: {result.stderr}", file=sys.stderr)
+                sys.exit(1)
 
     # Push README.md
     local_readme = local_dir / "README.md"
@@ -461,12 +513,29 @@ def cmd_push(calc_id: str) -> None:
     print(f"Pushed {calc_id} to {hostname}:{hpc_path}")
 
 
-def cmd_submit(calc_id: str, job_script: str) -> None:
+def cmd_submit(calc_id: str, job_script: str, subjob: str | None = None) -> None:
     """Write job script to remote and submit. Prints job_id."""
     metadata, body, readme = _get_calc_info(calc_id)
     computer_name = metadata.get("computer", "")
     config = _get_computer_config(computer_name)
     hostname = config["hostname"]
+    multi = _is_multi(metadata)
+
+    if multi and not subjob:
+        print("Error: --subjob is required for multi-job calculations", file=sys.stderr)
+        sys.exit(1)
+
+    if multi:
+        subjobs = metadata.get("subjobs", {})
+        # Match subjob label (YAML may parse numeric keys as int)
+        matched_label = None
+        for k in subjobs:
+            if str(k) == subjob:
+                matched_label = k
+                break
+        if matched_label is None:
+            print(f"Error: Sub-job '{subjob}' not found. Available: {list(subjobs.keys())}", file=sys.stderr)
+            sys.exit(1)
 
     if not _ssh_check(hostname):
         print(f"Error: SSH not connected to {computer_name} ({hostname}). Run: ssh -MNf {hostname}", file=sys.stderr)
@@ -475,9 +544,15 @@ def cmd_submit(calc_id: str, job_script: str) -> None:
     hpc_path = _ensure_hpc_path(metadata, body, readme, config, calc_id)
     scheduler = config.get("scheduler", "slurm")
 
+    # Determine working directory
+    if multi:
+        work_path = f"{hpc_path}{subjob}/"
+    else:
+        work_path = hpc_path
+
     # Write job script to remote
-    remote_script = f"{hpc_path}job.sh"
-    # Use heredoc via ssh to write the script
+    remote_script = f"{work_path}job.sh"
+    _ssh_run(hostname, f"mkdir -p {work_path}", timeout=30)
     write_cmd = f"cat > {remote_script} << 'PSIEOF'\n{job_script}\nPSIEOF"
     result = subprocess.run(
         ["ssh", hostname, "bash", "-c", write_cmd],
@@ -492,9 +567,9 @@ def cmd_submit(calc_id: str, job_script: str) -> None:
 
     # Submit
     if scheduler == "pbs":
-        submit_cmd = f"cd {hpc_path} && qsub job.sh"
+        submit_cmd = f"cd {work_path} && qsub job.sh"
     else:
-        submit_cmd = f"cd {hpc_path} && sbatch job.sh"
+        submit_cmd = f"cd {work_path} && sbatch job.sh"
 
     result = _ssh_run(hostname, submit_cmd, timeout=30)
     if result.returncode != 0:
@@ -505,10 +580,8 @@ def cmd_submit(calc_id: str, job_script: str) -> None:
     # Parse job ID
     job_id = ""
     if scheduler == "pbs":
-        # PBS output: "12345.hostname"
         job_id = output.strip()
     else:
-        # Slurm output: "Submitted batch job 12345"
         match = re.search(r"(\d+)", output)
         if match:
             job_id = match.group(1)
@@ -519,15 +592,52 @@ def cmd_submit(calc_id: str, job_script: str) -> None:
         return
 
     # Store job_id in frontmatter
-    metadata["job_id"] = job_id
-    metadata["status"] = "running"
+    if multi:
+        subjobs = metadata.get("subjobs", {})
+        if not isinstance(subjobs[matched_label], dict):
+            subjobs[matched_label] = {}
+        subjobs[matched_label]["job_id"] = job_id
+        subjobs[matched_label]["status"] = "running"
+        metadata["subjobs"] = subjobs
+        metadata["status"] = _aggregate_status(subjobs)
+    else:
+        metadata["job_id"] = job_id
+        metadata["status"] = "running"
     write_frontmatter(readme, metadata, body)
-    _update_index_status(calc_id, "running")
+    _update_index_status(calc_id, metadata["status"])
 
-    print(json.dumps({"submitted": True, "job_id": job_id}))
+    print(json.dumps({"submitted": True, "job_id": job_id, "subjob": subjob or ""}))
 
 
-def cmd_monitor(calc_id: str) -> None:
+def _check_job(hostname: str, scheduler: str, job_id: str) -> tuple[str, bool]:
+    """Check a single job's queue state. Returns (queue_state, job_finished)."""
+    queue_state = ""
+    job_finished = True
+    if job_id:
+        if scheduler == "pbs":
+            result = _ssh_run(hostname, f"qstat {job_id} 2>/dev/null", timeout=30)
+        else:
+            result = _ssh_run(hostname, f"squeue -j {job_id} -h -o '%T' 2>/dev/null", timeout=30)
+
+        output = result.stdout.strip()
+        if result.returncode == 0 and output:
+            if scheduler == "pbs":
+                lines = output.strip().split("\n")
+                for line in lines:
+                    if job_id.split(".")[0] in line:
+                        parts = line.split()
+                        if len(parts) >= 5:
+                            queue_state = parts[-2]
+                job_finished = queue_state == "" or queue_state == "C"
+            else:
+                queue_state = output.strip()
+                job_finished = False
+        else:
+            job_finished = True
+    return queue_state, job_finished
+
+
+def cmd_monitor(calc_id: str, subjob: str | None = None) -> None:
     """Check job status on remote. Outputs JSON."""
     metadata, body, readme = _get_calc_info(calc_id)
     computer_name = metadata.get("computer", "")
@@ -540,65 +650,150 @@ def cmd_monitor(calc_id: str) -> None:
 
     hpc_path = _ensure_hpc_path(metadata, body, readme, config, calc_id)
     scheduler = config.get("scheduler", "slurm")
-    job_id = metadata.get("job_id", "")
+    multi = _is_multi(metadata)
 
-    # Check queue
-    queue_state = ""
-    job_finished = True
-    if job_id:
-        if scheduler == "pbs":
-            result = _ssh_run(hostname, f"qstat {job_id} 2>/dev/null", timeout=30)
-        else:
-            result = _ssh_run(hostname, f"squeue -j {job_id} -h -o '%T' 2>/dev/null", timeout=30)
+    if multi:
+        subjobs = metadata.get("subjobs", {})
+        if subjob:
+            # Monitor a single sub-job
+            matched_label = None
+            for k in subjobs:
+                if str(k) == subjob:
+                    matched_label = k
+                    break
+            if matched_label is None:
+                print(f"Error: Sub-job '{subjob}' not found", file=sys.stderr)
+                sys.exit(1)
+            sj = subjobs[matched_label] if isinstance(subjobs[matched_label], dict) else {}
+            sj_job_id = sj.get("job_id", "")
+            queue_state, job_finished = _check_job(hostname, scheduler, sj_job_id)
 
-        output = result.stdout.strip()
-        if result.returncode == 0 and output:
+            sj_path = f"{hpc_path}{subjob}/"
+            output_files = []
+            result = _ssh_run(hostname, f"find {sj_path}output/ -type f 2>/dev/null | head -100", timeout=30)
+            if result.returncode == 0 and result.stdout.strip():
+                for line in result.stdout.strip().split("\n"):
+                    rel = line.replace(f"{sj_path}output/", "")
+                    if rel:
+                        output_files.append(rel)
+
+            log_files = []
             if scheduler == "pbs":
-                # Parse PBS qstat output
-                lines = output.strip().split("\n")
-                for line in lines:
-                    if job_id.split(".")[0] in line:
-                        parts = line.split()
-                        if len(parts) >= 5:
-                            queue_state = parts[-2]
-                job_finished = queue_state == "" or queue_state == "C"
+                log_pattern = f"{sj_path}*.o* {sj_path}*.e*"
             else:
-                queue_state = output.strip()
-                job_finished = False
+                log_pattern = f"{sj_path}slurm-*.out"
+            result = _ssh_run(hostname, f"ls {log_pattern} 2>/dev/null", timeout=30)
+            if result.returncode == 0 and result.stdout.strip():
+                log_files = [Path(f).name for f in result.stdout.strip().split("\n")]
+
+            print(json.dumps({
+                "calc_id": calc_id,
+                "subjob": subjob,
+                "job_id": sj_job_id,
+                "queue_state": queue_state,
+                "job_finished": job_finished,
+                "output_files": output_files,
+                "log_files": log_files,
+            }, indent=2))
         else:
-            # Job not in queue -> finished
-            job_finished = True
+            # Monitor all sub-jobs
+            all_finished = True
+            subjob_results = {}
+            for label, sj in subjobs.items():
+                label_str = str(label)
+                sj = sj if isinstance(sj, dict) else {}
+                sj_job_id = sj.get("job_id", "")
+                if sj.get("status") in ("planned", "completed", "error"):
+                    subjob_results[label_str] = {
+                        "job_id": sj_job_id,
+                        "status": sj.get("status", "planned"),
+                        "queue_state": "",
+                        "job_finished": sj.get("status") != "planned",
+                    }
+                    continue
+                queue_state, job_finished = _check_job(hostname, scheduler, sj_job_id)
+                subjob_results[label_str] = {
+                    "job_id": sj_job_id,
+                    "queue_state": queue_state,
+                    "job_finished": job_finished,
+                }
+                if not job_finished:
+                    all_finished = False
 
-    # List remote output files
-    output_files = []
-    result = _ssh_run(hostname, f"find {hpc_path}output/ -type f 2>/dev/null | head -100", timeout=30)
-    if result.returncode == 0 and result.stdout.strip():
-        for line in result.stdout.strip().split("\n"):
-            rel = line.replace(f"{hpc_path}output/", "")
-            if rel:
-                output_files.append(rel)
-
-    # List scheduler log files
-    log_files = []
-    if scheduler == "pbs":
-        log_pattern = f"{hpc_path}*.o* {hpc_path}*.e*"
+            print(json.dumps({
+                "calc_id": calc_id,
+                "type": "multi",
+                "all_finished": all_finished,
+                "subjobs": subjob_results,
+            }, indent=2))
     else:
-        log_pattern = f"{hpc_path}slurm-*.out"
-    result = _ssh_run(hostname, f"ls {log_pattern} 2>/dev/null", timeout=30)
-    if result.returncode == 0 and result.stdout.strip():
-        log_files = [Path(f).name for f in result.stdout.strip().split("\n")]
+        job_id = metadata.get("job_id", "")
+        queue_state, job_finished = _check_job(hostname, scheduler, job_id)
 
-    print(json.dumps({
-        "calc_id": calc_id,
-        "job_id": job_id,
-        "queue_state": queue_state,
-        "job_finished": job_finished,
-        "output_files": output_files,
-        "log_files": log_files,
-    }, indent=2))
+        # List remote output files
+        output_files = []
+        result = _ssh_run(hostname, f"find {hpc_path}output/ -type f 2>/dev/null | head -100", timeout=30)
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().split("\n"):
+                rel = line.replace(f"{hpc_path}output/", "")
+                if rel:
+                    output_files.append(rel)
+
+        # List scheduler log files
+        log_files = []
+        if scheduler == "pbs":
+            log_pattern = f"{hpc_path}*.o* {hpc_path}*.e*"
+        else:
+            log_pattern = f"{hpc_path}slurm-*.out"
+        result = _ssh_run(hostname, f"ls {log_pattern} 2>/dev/null", timeout=30)
+        if result.returncode == 0 and result.stdout.strip():
+            log_files = [Path(f).name for f in result.stdout.strip().split("\n")]
+
+        print(json.dumps({
+            "calc_id": calc_id,
+            "job_id": job_id,
+            "queue_state": queue_state,
+            "job_finished": job_finished,
+            "output_files": output_files,
+            "log_files": log_files,
+        }, indent=2))
 
 
-def cmd_pull(calc_id: str, pull_all: bool = False) -> None:
+def _pull_output(hostname: str, remote_path: str, local_output_dir: Path,
+                  scheduler: str, pull_all: bool) -> None:
+    """Pull output/ and logs from a single remote path to local output dir."""
+    local_output_dir.mkdir(parents=True, exist_ok=True)
+    max_size = None if pull_all else "50M"
+    result = _rsync(f"{hostname}:{remote_path}output/", f"{local_output_dir}/", max_size=max_size)
+    if result.returncode != 0:
+        print(f"Warning: rsync output/ returned code {result.returncode}: {result.stderr}", file=sys.stderr)
+
+    # Pull scheduler log files
+    if scheduler == "pbs":
+        log_pattern = f"{remote_path}*.o* {remote_path}*.e*"
+    else:
+        log_pattern = f"{remote_path}slurm-*.out"
+    log_result = _ssh_run(hostname, f"ls {log_pattern} 2>/dev/null", timeout=30)
+    if log_result.returncode == 0 and log_result.stdout.strip():
+        for log_file in log_result.stdout.strip().split("\n"):
+            log_name = Path(log_file).name
+            rsync_result = _rsync(f"{hostname}:{log_file}", str(local_output_dir / log_name))
+            if rsync_result.returncode != 0:
+                print(f"Warning: Failed to pull {log_name}", file=sys.stderr)
+
+    # Report large files that were skipped
+    if not pull_all:
+        large_result = _ssh_run(
+            hostname,
+            f"find {remote_path}output/ -size +50M -exec ls -lh {{}} \\;",
+            timeout=30,
+        )
+        if large_result.returncode == 0 and large_result.stdout.strip():
+            print("Large files skipped (>50MB):", file=sys.stderr)
+            print(large_result.stdout, file=sys.stderr)
+
+
+def cmd_pull(calc_id: str, pull_all: bool = False, subjob: str | None = None) -> None:
     """Pull output/ from remote. 50MB limit by default."""
     metadata, body, readme = _get_calc_info(calc_id)
     computer_name = metadata.get("computer", "")
@@ -611,54 +806,64 @@ def cmd_pull(calc_id: str, pull_all: bool = False) -> None:
 
     hpc_path = _ensure_hpc_path(metadata, body, readme, config, calc_id)
     local_dir = readme.parent
-    remote_base = f"{hostname}:{hpc_path}"
     scheduler = config.get("scheduler", "slurm")
+    multi = _is_multi(metadata)
 
-    # Pull output/
-    output_dir = local_dir / "output"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    max_size = None if pull_all else "50M"
-    result = _rsync(f"{remote_base}output/", f"{output_dir}/", max_size=max_size)
-    if result.returncode != 0:
-        print(f"Warning: rsync output/ returned code {result.returncode}: {result.stderr}", file=sys.stderr)
-
-    # Pull scheduler log files into output/
-    if scheduler == "pbs":
-        log_pattern = f"{hpc_path}*.o* {hpc_path}*.e*"
+    if multi:
+        subjobs = metadata.get("subjobs", {})
+        if subjob:
+            # Pull a single sub-job
+            remote_sj = f"{hpc_path}{subjob}/"
+            local_output = local_dir / subjob / "output"
+            _pull_output(hostname, remote_sj, local_output, scheduler, pull_all)
+            print(f"Pulled {calc_id}/{subjob} from {hostname}:{remote_sj}")
+        else:
+            # Pull all sub-jobs
+            for label in subjobs:
+                label_str = str(label)
+                remote_sj = f"{hpc_path}{label_str}/"
+                local_output = local_dir / label_str / "output"
+                _pull_output(hostname, remote_sj, local_output, scheduler, pull_all)
+                print(f"Pulled {calc_id}/{label_str} from {hostname}:{remote_sj}")
     else:
-        log_pattern = f"{hpc_path}slurm-*.out"
-    log_result = _ssh_run(hostname, f"ls {log_pattern} 2>/dev/null", timeout=30)
-    if log_result.returncode == 0 and log_result.stdout.strip():
-        for log_file in log_result.stdout.strip().split("\n"):
-            log_name = Path(log_file).name
-            rsync_result = _rsync(f"{hostname}:{log_file}", str(output_dir / log_name))
-            if rsync_result.returncode != 0:
-                print(f"Warning: Failed to pull {log_name}", file=sys.stderr)
-
-    # Report large files that were skipped
-    if not pull_all:
-        large_result = _ssh_run(
-            hostname,
-            f"find {hpc_path}output/ -size +50M -exec ls -lh {{}} \\;",
-            timeout=30,
-        )
-        if large_result.returncode == 0 and large_result.stdout.strip():
-            print("Large files skipped (>50MB):", file=sys.stderr)
-            print(large_result.stdout, file=sys.stderr)
-
-    print(f"Pulled {calc_id} from {hostname}:{hpc_path}")
+        output_dir = local_dir / "output"
+        _pull_output(hostname, hpc_path, output_dir, scheduler, pull_all)
+        print(f"Pulled {calc_id} from {hostname}:{hpc_path}")
 
 
-def cmd_update_status(calc_id: str, status: str, job_id: str | None = None) -> None:
+def cmd_update_status(calc_id: str, status: str, job_id: str | None = None,
+                      subjob: str | None = None) -> None:
     """Update calc status and optionally job_id in frontmatter and index."""
     metadata, body, readme = _get_calc_info(calc_id)
-    metadata["status"] = status
-    if job_id is not None:
-        metadata["job_id"] = job_id
-    write_frontmatter(readme, metadata, body)
-    _update_index_status(calc_id, status)
-    print(f"Updated {calc_id}: status={status}" + (f", job_id={job_id}" if job_id else ""))
+    multi = _is_multi(metadata)
+
+    if multi and subjob:
+        subjobs = metadata.get("subjobs", {})
+        matched_label = None
+        for k in subjobs:
+            if str(k) == subjob:
+                matched_label = k
+                break
+        if matched_label is None:
+            print(f"Error: Sub-job '{subjob}' not found", file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(subjobs[matched_label], dict):
+            subjobs[matched_label] = {}
+        subjobs[matched_label]["status"] = status
+        if job_id is not None:
+            subjobs[matched_label]["job_id"] = job_id
+        metadata["subjobs"] = subjobs
+        metadata["status"] = _aggregate_status(subjobs)
+        write_frontmatter(readme, metadata, body)
+        _update_index_status(calc_id, metadata["status"])
+        print(f"Updated {calc_id}/{subjob}: status={status}" + (f", job_id={job_id}" if job_id else ""))
+    else:
+        metadata["status"] = status
+        if job_id is not None:
+            metadata["job_id"] = job_id
+        write_frontmatter(readme, metadata, body)
+        _update_index_status(calc_id, status)
+        print(f"Updated {calc_id}: status={status}" + (f", job_id={job_id}" if job_id else ""))
 
 
 # --- Main ---
@@ -676,18 +881,22 @@ def main() -> None:
     p_sub = sub.add_parser("submit", help="Write job script and submit")
     p_sub.add_argument("calc_id", help="Calculation ID")
     p_sub.add_argument("job_script", help="Job script content")
+    p_sub.add_argument("--subjob", default=None, help="Sub-job label (required for multi-job)")
 
     p_mon = sub.add_parser("monitor", help="Check job status")
     p_mon.add_argument("calc_id", help="Calculation ID")
+    p_mon.add_argument("--subjob", default=None, help="Sub-job label (optional, monitors all if omitted)")
 
     p_pull = sub.add_parser("pull", help="Pull output/ from remote")
     p_pull.add_argument("calc_id", help="Calculation ID")
     p_pull.add_argument("--all", action="store_true", dest="pull_all", help="Pull all files (no size limit)")
+    p_pull.add_argument("--subjob", default=None, help="Sub-job label (optional, pulls all if omitted)")
 
     p_stat = sub.add_parser("update-status", help="Update calc status")
     p_stat.add_argument("calc_id", help="Calculation ID")
     p_stat.add_argument("status", help="New status value")
     p_stat.add_argument("--job-id", default=None, help="Job ID to store")
+    p_stat.add_argument("--subjob", default=None, help="Sub-job label (for multi-job)")
 
     args = parser.parse_args()
 
@@ -696,13 +905,13 @@ def main() -> None:
     elif args.command == "push":
         cmd_push(args.calc_id)
     elif args.command == "submit":
-        cmd_submit(args.calc_id, args.job_script)
+        cmd_submit(args.calc_id, args.job_script, args.subjob)
     elif args.command == "monitor":
-        cmd_monitor(args.calc_id)
+        cmd_monitor(args.calc_id, args.subjob)
     elif args.command == "pull":
-        cmd_pull(args.calc_id, args.pull_all)
+        cmd_pull(args.calc_id, args.pull_all, args.subjob)
     elif args.command == "update-status":
-        cmd_update_status(args.calc_id, args.status, args.job_id)
+        cmd_update_status(args.calc_id, args.status, args.job_id, args.subjob)
 
 
 if __name__ == "__main__":

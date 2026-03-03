@@ -85,6 +85,51 @@ python {skill_dir}/run_calc.py update-status <calc_id> completed
 
 If the job failed (check scheduler logs), set status to `error` instead.
 
+## Multi-Job Calculations
+
+For calcs with `type: multi`, the workflow changes per phase:
+
+### Preflight
+Preflight detects multi-job and returns per-subjob status and files. Check which sub-jobs are still `planned` — only those need to be submitted.
+
+### Push
+Push sends `code/` once (shared) and each sub-job's `input/` to `hpc_path/{label}/input/`.
+
+### Submit
+**Requires `--subjob <label>`** for multi-job calcs. Submit sub-jobs sequentially, getting user approval for each job script.
+
+```bash
+python {skill_dir}/run_calc.py submit <calc_id> '<job_script>' --subjob <label>
+```
+
+The working directory on the remote is `hpc_path/{label}/`. Code is at `../code/` relative to the sub-job directory.
+
+### Monitor
+Without `--subjob`, monitors all sub-jobs and returns `all_finished` flag. With `--subjob`, monitors one.
+
+```bash
+python {skill_dir}/run_calc.py monitor <calc_id>
+python {skill_dir}/run_calc.py monitor <calc_id> --subjob <label>
+```
+
+### Pull
+Without `--subjob`, pulls all sub-job outputs. With `--subjob`, pulls one. Logs go to `{label}/output/`.
+
+```bash
+python {skill_dir}/run_calc.py pull <calc_id>
+python {skill_dir}/run_calc.py pull <calc_id> --subjob <label>
+```
+
+### Update Status
+With `--subjob`, updates that sub-job's status and re-aggregates the top-level status.
+
+```bash
+python {skill_dir}/run_calc.py update-status <calc_id> completed --subjob <label>
+```
+
+### Resume
+Only submit sub-jobs still in `planned` status. Sub-jobs already `running` or `completed` are skipped.
+
 ## Rules
 
 - **Always show the job script to the user before submitting.** Never auto-submit.
@@ -93,3 +138,5 @@ If the job failed (check scheduler logs), set status to `error` instead.
 - **Stop monitoring on SSH disconnect.** Do not retry SSH in a loop.
 - **Resume from current state.** If calc is already `running` with a `job_id`, skip directly to monitor.
 - **Do not modify `input/` or `code/` contents.** Those are the user's responsibility.
+- **Submit multi-job sub-jobs sequentially with user approval per script.** Do not batch-submit without confirmation.
+- **For multi-job, the working directory is `hpc_path/{label}/`.** Code lives at `../code/` relative to each sub-job.

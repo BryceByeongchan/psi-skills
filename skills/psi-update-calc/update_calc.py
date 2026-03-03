@@ -46,8 +46,8 @@ def locked_write(path: str | Path, timeout: float = 30.0) -> Generator[Path, Non
 _FM_PATTERN = re.compile(r"\A---\n(.*?)---\n?(.*)", re.DOTALL)
 
 CALC_KEY_ORDER = [
-    "id", "title", "date", "status", "code", "computer", "tags",
-    "parents", "children", "reports", "hpc_path", "key_results", "notes",
+    "id", "title", "date", "status", "type", "code", "computer", "tags",
+    "parents", "children", "reports", "hpc_path", "subjobs", "key_results", "notes",
 ]
 
 
@@ -166,6 +166,19 @@ def deep_merge(base: dict, override: dict) -> dict:
         else:
             result[key] = value
     return result
+
+
+def _aggregate_status(subjobs: dict) -> str:
+    statuses = [v.get("status", "planned") if isinstance(v, dict) else "planned" for v in subjobs.values()]
+    if not statuses:
+        return "planned"
+    if all(s == "planned" for s in statuses):
+        return "planned"
+    if any(s == "error" for s in statuses):
+        return "error"
+    if all(s == "completed" for s in statuses):
+        return "completed"
+    return "running"
 
 
 # --- Inline: markdown_table ---
@@ -341,6 +354,21 @@ def main() -> None:
     # Deep merge updates
     metadata = deep_merge(metadata, updates)
     new_parents = set(metadata.get("parents", []))
+
+    # Auto-aggregate status for multi-job calcs (unless status explicitly set)
+    if metadata.get("type") == "multi" and "subjobs" in metadata and "status" not in updates:
+        metadata["status"] = _aggregate_status(metadata["subjobs"])
+
+    # Create directories for any new subjob labels
+    if metadata.get("type") == "multi" and "subjobs" in updates:
+        calc_dir = readme.parent
+        for label in metadata.get("subjobs", {}):
+            for subdir in ["input", "output"]:
+                d = calc_dir / str(label) / subdir
+                d.mkdir(parents=True, exist_ok=True)
+                gitkeep = d / ".gitkeep"
+                if not gitkeep.exists():
+                    gitkeep.touch()
 
     # Write updated frontmatter
     write_frontmatter(readme, metadata, body)

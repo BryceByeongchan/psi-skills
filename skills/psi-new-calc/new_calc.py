@@ -47,8 +47,8 @@ def locked_write(path: str | Path, timeout: float = 30.0) -> Generator[Path, Non
 _FM_PATTERN = re.compile(r"\A---\n(.*?)---\n?(.*)", re.DOTALL)
 
 CALC_KEY_ORDER = [
-    "id", "title", "date", "status", "code", "computer", "tags",
-    "parents", "children", "reports", "hpc_path", "key_results", "notes",
+    "id", "title", "date", "status", "type", "code", "computer", "tags",
+    "parents", "children", "reports", "hpc_path", "subjobs", "key_results", "notes",
 ]
 
 
@@ -272,8 +272,46 @@ CALC_BODY = """\
 {{Anything else: problems, observations, follow-up ideas}}
 """
 
+CALC_BODY_MULTI = """\
+
+# {id}: {title}
+
+## Description
+
+{{What this calculation does and why}}
+
+## Method
+
+{{Code, functional, parameters, convergence settings, etc.}}
+
+## Sub-jobs
+
+{subjob_table}
+
+## Results
+
+{{Key outcomes, tables, figures}}
+
+## Notes
+
+{{Anything else: problems, observations, follow-up ideas}}
+"""
+
 CALC_HEADERS = ["id", "title", "date", "status", "code", "computer", "parents", "tags"]
 CALC_PREAMBLE = "# Calculation Index\n\n"
+
+
+def _aggregate_status(subjobs: dict) -> str:
+    statuses = [v.get("status", "planned") if isinstance(v, dict) else "planned" for v in subjobs.values()]
+    if not statuses:
+        return "planned"
+    if all(s == "planned" for s in statuses):
+        return "planned"
+    if any(s == "error" for s in statuses):
+        return "error"
+    if all(s == "completed" for s in statuses):
+        return "completed"
+    return "running"
 
 
 def _fmt_cell(value, header: str) -> str:
@@ -391,7 +429,24 @@ def main() -> None:
         if k not in ("title", "date", "code", "computer", "tags", "parents"):
             metadata[k] = v
 
-    body = CALC_BODY.format(id=next_id, title=metadata["title"])
+    # Handle multi-job setup
+    is_multi = metadata.get("type") == "multi"
+    if is_multi:
+        subjob_labels = data.get("subjobs", [])
+        if not subjob_labels:
+            print("Error: type=multi requires subjobs list", file=sys.stderr)
+            sys.exit(1)
+        subjobs = {label: {"status": "planned", "job_id": ""} for label in subjob_labels}
+        metadata["subjobs"] = subjobs
+        metadata["status"] = _aggregate_status(subjobs)
+        # Build subjob table for body
+        table_lines = ["| Label | Status | Job ID |", "|-------|--------|--------|"]
+        for label in subjob_labels:
+            table_lines.append(f"| {label} | planned | - |")
+        subjob_table = "\n".join(table_lines)
+        body = CALC_BODY_MULTI.format(id=next_id, title=metadata["title"], subjob_table=subjob_table)
+    else:
+        body = CALC_BODY.format(id=next_id, title=metadata["title"])
 
     # Create calc directory and README
     slug = _slugify(metadata.get("tags", []))
@@ -402,12 +457,28 @@ def main() -> None:
     write_frontmatter(readme, metadata, body)
 
     # Create subdirectories
-    for subdir in ["input", "output", "code"]:
-        d = calc_path / subdir
-        d.mkdir(exist_ok=True)
-        gitkeep = d / ".gitkeep"
+    if is_multi:
+        # Multi-job: code/ at top level, {label}/input/ and {label}/output/ per sub-job
+        code_dir = calc_path / "code"
+        code_dir.mkdir(exist_ok=True)
+        gitkeep = code_dir / ".gitkeep"
         if not gitkeep.exists():
             gitkeep.touch()
+        for label in subjob_labels:
+            for subdir in ["input", "output"]:
+                d = calc_path / label / subdir
+                d.mkdir(parents=True, exist_ok=True)
+                gitkeep = d / ".gitkeep"
+                if not gitkeep.exists():
+                    gitkeep.touch()
+    else:
+        # Single-job: input/, output/, code/
+        for subdir in ["input", "output", "code"]:
+            d = calc_path / subdir
+            d.mkdir(exist_ok=True)
+            gitkeep = d / ".gitkeep"
+            if not gitkeep.exists():
+                gitkeep.touch()
 
     # Append to index
     index_path = calc_dir / "index.md"

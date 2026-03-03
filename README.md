@@ -21,7 +21,7 @@ Invoke skills with `/` prefix in Claude Code:
 | Skill | Description |
 |-------|-------------|
 | `/psi-init` | Initialize tracking in current project |
-| `/psi-new-calc <title> <code> [parents:...] [tags:...]` | Create a new calculation |
+| `/psi-new-calc <title> <code> [parents:...] [tags:...] [type:multi] [subjobs:...]` | Create a new calculation |
 | `/psi-update-calc <id> [field=value ...]` | Update calculation metadata |
 | `/psi-new-report <title> [calcs:...] [tags:...]` | Create a new report |
 | `/psi-update-report <id> [field=value ...]` | Update report metadata |
@@ -49,6 +49,8 @@ c001_si_relax (relax) → c002_si_scf (scf) → c003_si_bands (bands)
 ```
 
 Each entry is a directory with a `README.md` containing YAML front matter and markdown body. Directory names include tags for readability (e.g., `c001_mos2_relax/`) while the `id` in frontmatter stays bare (`c001`). Index files (`calc_db/index.md`, `reports/index.md`) provide tabular overviews. All data is git-friendly, human-readable, and diff-able.
+
+Calculations support **multi-job** mode (`type:multi`) for parameter sweeps and convergence tests — a single calc with shared `code/` and per-subjob `{label}/input/`, `{label}/output/` directories, with automatic status aggregation.
 
 ## Architecture
 

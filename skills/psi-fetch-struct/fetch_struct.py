@@ -33,8 +33,9 @@ _NLAYERS_SUFFIX = {1: "monolayer", 2: "bilayer"}
 
 
 def _make_filename(structure, symmetry, output_dir: str = ".",
-                   n_layers: int | None = None) -> str:
-    formula = structure.composition.reduced_formula
+                   n_layers: int | None = None,
+                   formula_pretty: str | None = None) -> str:
+    formula = formula_pretty or structure.composition.reduced_formula
     if n_layers is not None:
         suffix = _NLAYERS_SUFFIX.get(n_layers, f"{n_layers}L")
         name = f"{formula}_{suffix}.cif"
@@ -94,7 +95,7 @@ def _parse_natural_language(query: str) -> dict:
             break
 
     # Polymorph (1H, 2H, 1T, 3R, etc.)
-    polymorph_match = re.search(r"(\d+[HRT])", query_lower)
+    polymorph_match = re.search(r"(\d+[HRT])", query, re.IGNORECASE)
     if polymorph_match:
         hints["polymorph"] = polymorph_match.group(1).upper()
 
@@ -126,30 +127,36 @@ def _parse_natural_language(query: str) -> dict:
 def _extract_layers(structure, n_layers: int = 1, vacuum: float = 15.0):
     """Extract n_layers from a layered bulk structure and add vacuum.
 
+    Uses cyclic gap analysis on fractional z to handle PBC correctly,
+    and operates in fractional coordinates throughout (valid for any
+    cell geometry, not just orthogonal cells).
+
     Returns (new_structure, n_total_layers) or raises ValueError.
     """
     import numpy as np
     from pymatgen.core import Structure, Lattice
 
     sites = list(structure)
+    n_atoms = len(sites)
     frac_zs = np.array([s.frac_coords[2] for s in sites])
     sorted_indices = np.argsort(frac_zs)
     sorted_z = frac_zs[sorted_indices]
 
-    # Need at least 3 atoms to detect layers
-    if len(sites) < 3:
+    if n_atoms < 3:
         raise ValueError(
-            f"Structure has only {len(sites)} atoms — cannot detect layers"
+            f"Structure has only {n_atoms} atoms — cannot detect layers"
         )
 
-    gaps = np.diff(sorted_z)
+    # Compute gaps including cyclic (PBC) wrap-around gap
+    consec_gaps = np.diff(sorted_z)
+    cyclic_gap = sorted_z[0] + 1.0 - sorted_z[-1]
+    all_gaps = np.append(consec_gaps, cyclic_gap)
 
-    # Find layer boundaries: gaps significantly larger than intra-layer spacing
-    if len(gaps) < 2:
+    if len(all_gaps) < 2:
         raise ValueError("Too few atoms to identify layered structure")
 
-    max_gap = gaps.max()
-    other_gaps = np.delete(gaps, np.argmax(gaps))
+    max_gap = all_gaps.max()
+    other_gaps = np.delete(all_gaps, np.argmax(all_gaps))
     median_other = float(np.median(other_gaps))
 
     if median_other == 0 or max_gap / median_other < 1.5:
@@ -158,16 +165,37 @@ def _extract_layers(structure, n_layers: int = 1, vacuum: float = 15.0):
             f"{formula} does not appear to be a layered material"
         )
 
-    # Split into layers at all "large" gaps (> midpoint between max and median)
+    # Mark large gaps as layer boundaries
     threshold = (max_gap + median_other) / 2
-    split_positions = np.where(gaps > threshold)[0] + 1  # indices into sorted
+    boundary_mask = all_gaps > threshold
 
-    # Build layer groups
-    boundaries = [0, *split_positions, len(sorted_indices)]
-    layers = []
-    for i in range(len(boundaries) - 1):
-        layer_idx = sorted_indices[boundaries[i]:boundaries[i + 1]]
-        layers.append(layer_idx)
+    # Start walk from just after the first boundary gap so no layer
+    # straddles the starting point.
+    first_boundary = int(np.where(boundary_mask)[0][0])
+    start_pos = (first_boundary + 1) % n_atoms
+
+    # Walk through sorted atoms, grouping into layers.
+    # Track "unwrapped" fractional z (monotonically increasing) so that
+    # layers wrapping around z=0 get correct thickness.
+    layers = [[sorted_indices[start_pos]]]
+    layer_unwrapped = [[sorted_z[start_pos]]]
+    running_z = float(sorted_z[start_pos])
+
+    for step in range(1, n_atoms):
+        prev_pos = (start_pos + step - 1) % n_atoms
+        curr_pos = (start_pos + step) % n_atoms
+
+        gap = sorted_z[curr_pos] - sorted_z[prev_pos]
+        if gap < 0:
+            gap += 1.0  # PBC wrap
+        running_z += gap
+
+        if boundary_mask[prev_pos]:
+            layers.append([sorted_indices[curr_pos]])
+            layer_unwrapped.append([running_z])
+        else:
+            layers[-1].append(sorted_indices[curr_pos])
+            layer_unwrapped[-1].append(running_z)
 
     total_layers = len(layers)
     if n_layers > total_layers:
@@ -176,31 +204,37 @@ def _extract_layers(structure, n_layers: int = 1, vacuum: float = 15.0):
             f"{total_layers} layers per unit cell"
         )
 
-    # Take the first n_layers groups
-    selected_indices = np.concatenate(layers[:n_layers])
-    selected_sites = [sites[i] for i in selected_indices]
-
-    # Build new structure with vacuum
-    cart_zs = np.array([s.coords[2] for s in selected_sites])
-    layer_thickness = float(cart_zs.max() - cart_zs.min())
-    new_c = layer_thickness + vacuum
+    # Select layers and compute thickness using fractional z × c
+    sel_indices = [i for layer in layers[:n_layers] for i in layer]
+    sel_unwrapped = np.array(
+        [z for uzs in layer_unwrapped[:n_layers] for z in uzs]
+    )
 
     old_lat = structure.lattice
+    old_c = old_lat.c
+    frac_thickness = float(sel_unwrapped.max() - sel_unwrapped.min())
+    layer_thickness = frac_thickness * old_c
+    new_c = layer_thickness + vacuum
+
     new_lat = Lattice.from_parameters(
         old_lat.a, old_lat.b, new_c,
         old_lat.alpha, old_lat.beta, old_lat.gamma,
     )
 
-    center_z = (cart_zs.min() + cart_zs.max()) / 2
+    # Build new structure — center layer in the new cell along c
+    center_uz = (sel_unwrapped.max() + sel_unwrapped.min()) / 2
     new_species = []
-    new_coords = []
-    for site in selected_sites:
+    new_frac_coords = []
+    for atom_idx, uz in zip(sel_indices, sel_unwrapped):
+        site = sites[atom_idx]
         new_species.append(site.species_string)
-        new_z = site.coords[2] - center_z + new_c / 2
-        new_coords.append([site.coords[0], site.coords[1], new_z])
+        new_frac_z = (uz - center_uz) * (old_c / new_c) + 0.5
+        new_frac_coords.append([
+            site.frac_coords[0], site.frac_coords[1], new_frac_z,
+        ])
 
     return (
-        Structure(new_lat, new_species, new_coords, coords_are_cartesian=True),
+        Structure(new_lat, new_species, new_frac_coords),
         total_layers,
     )
 
@@ -213,10 +247,15 @@ def _fetch_by_mp_id(mp_id: str) -> dict | None:
     from mp_api.client import MPRester
 
     with MPRester() as mpr:
-        result = mpr.materials.summary.search(
+        docs = mpr.materials.summary.search(
             material_ids=[mp_id],
             fields=["material_id", "formula_pretty", "symmetry", "structure"],
-        )[0]
+        )
+
+    if not docs:
+        return None
+
+    result = docs[0]
     return {
         "material_id": str(result.material_id),
         "formula": result.formula_pretty,
@@ -237,7 +276,14 @@ def _search_by_formula(formula: str, max_results: int = 10) -> list[dict]:
             ],
         )
 
-    docs_sorted = sorted(docs, key=lambda d: d.energy_above_hull or 0)
+    docs_sorted = sorted(
+        docs,
+        key=lambda d: (
+            d.energy_above_hull
+            if d.energy_above_hull is not None
+            else float("inf")
+        ),
+    )
     results = []
     for doc in docs_sorted[:max_results]:
         results.append({
@@ -311,9 +357,11 @@ def main() -> None:
                 sys.exit(1)
 
         filename = _make_filename(
-            structure, result["symmetry"], output_dir, n_layers=n_layers,
+            structure, result["symmetry"], output_dir,
+            n_layers=n_layers, formula_pretty=result["formula"],
         )
         try:
+            os.makedirs(os.path.dirname(filename) or ".", exist_ok=True)
             structure.to(filename=filename)
         except Exception as exc:
             print(_error(f"Failed to save structure: {exc}"))

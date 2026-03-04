@@ -24,7 +24,7 @@ skills/
 
 Each directory contains:
 - `SKILL.md` — Skill prompt (usage, rules, execution instructions)
-- `*.py` — Self-contained Python script (only depends on PyYAML)
+- `*.py` — Self-contained Python script (depends on PyYAML; `psi-fetch-struct` additionally requires `pymatgen` and `mp-api`)
 
 ## Design Principles
 

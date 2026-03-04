@@ -105,6 +105,6 @@ The script automatically extracts layers from the bulk by gap-based z-clustering
 
 - If the API key is not configured, `MPRester()` will raise an error. Show the setup instructions from the Prerequisites section and stop.
 - For formula searches, show at most 10 results sorted by energy above hull.
-- For natural language queries, apply all extracted filters (dimensionality, crystal system, polymorph) before presenting results.
+- For natural language queries, apply crystal system filters when detected. Polymorph and dimensionality hints are extracted and returned but not filtered server-side (would require fetching full structures for each candidate).
 - When saving a `.cif` file, use the naming convention `{Formula}_{Polymorph}.cif` for bulk, `{Formula}_monolayer.cif` / `{Formula}_bilayer.cif` for extracted layers.
 - **When the user requests a monolayer/bilayer, always set `n_layers` in the JSON.** Do not save the bulk structure when the user asked for a monolayer.

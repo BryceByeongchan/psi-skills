@@ -125,7 +125,7 @@ for skill in "${SKILLS_TO_INSTALL[@]}"; do
 
   cp -r "$SOURCE" "$TARGET_DIR/"
   printf "${GREEN}  ✓ $skill${NC}\n"
-  ((INSTALLED_COUNT++))
+  INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
 done
 printf "${GREEN}✓ Installed $INSTALLED_COUNT skills${NC}\n"
 echo ""

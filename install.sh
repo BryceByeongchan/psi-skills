@@ -102,6 +102,17 @@ SKILLS_TO_INSTALL=(
   "psi-remove-computer"
   "psi-update-computer"
   "psi-run-calc"
+  "psi-fetch-struct"
+  "psi-qe-input-generator"
+  "psi-qe-input-validator"
+  "psi-qe-plotbands"
+  "psi-bgw-pw2bgw"
+  "psi-bgw-parabands"
+  "psi-bgw-epsilon"
+  "psi-bgw-sigma"
+  "psi-bgw-gw-conv-sigma"
+  "psi-bgw-gw-conv-epsilon"
+  "psi-bgw-gw-conv-analyze"
 )
 
 INSTALLED_COUNT=0

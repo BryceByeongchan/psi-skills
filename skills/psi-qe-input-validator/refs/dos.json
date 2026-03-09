@@ -1,0 +1,52 @@
+{
+  "program": "dos.x",
+  "namelists": {
+    "DOS": {
+      "prefix": {
+        "default": "pwscf",
+        "info": "prefix of input file produced by pw.x\n(wavefunctions are not needed)",
+        "type": "CHARACTER"
+      },
+      "outdir": {
+        "info": "directory containing the input data, i.e. the same as in pw.x",
+        "type": "CHARACTER"
+      },
+      "bz_sum": {
+        "info": "Keyword selecting the method for BZ summation. Available options are:\n'smearing': integration using gaussian smearing. In fact currently\nany string not related to tetrahedra defaults to smearing;\n'tetrahedra': Tetrahedron method, Bloechl's version:\nP.E. Bloechl, PRB 49, 16223 (1994)\nRequires uniform grid of k-points, to be\nautomatically generated in pw.x.\n'tetrahedra_lin': Original linear tetrahedron method.\nTo be used only as a reference;\nthe optimized tetrahedron method is more efficient.\n'tetrahedra_opt': Optimized tetrahedron method:\nsee M. Kawamura, PRB 89, 094515 (2014).",
+        "options": [
+          "smearing",
+          "tetrahedra",
+          "tetrahedra_lin",
+          "tetrahedra_opt"
+        ],
+        "type": "CHARACTER"
+      },
+      "ngauss": {
+        "default": 0,
+        "info": "Type of gaussian broadening:\n\n= 0 Simple Gaussian (default)\n\n= 1 Methfessel-Paxton of order 1\n\n= -1 \"cold smearing\" (Marzari-Vanderbilt-DeVita-Payne)\n\n=-99 Fermi-Dirac function",
+        "type": "INTEGER"
+      },
+      "degauss": {
+        "info": "gaussian broadening, Ry (not eV!)\n(see below)",
+        "type": "REAL"
+      },
+      "deltae": {
+        "info": "energy grid step (eV)",
+        "type": "REAL"
+      },
+      "fildos": {
+        "default": "@ref prefix.dos",
+        "info": "output file containing DOS(E)",
+        "type": "CHARACTER"
+      },
+      "emin": {
+        "type": "REAL",
+        "info": "min, max energy (eV) for DOS plot. If unspecified, the\nlower and/or upper band value, plus/minus 3 times the\nvalue of the gaussian smearing if present, will be used."
+      },
+      "emax": {
+        "type": "REAL",
+        "info": "min, max energy (eV) for DOS plot. If unspecified, the\nlower and/or upper band value, plus/minus 3 times the\nvalue of the gaussian smearing if present, will be used."
+      }
+    }
+  }
+}

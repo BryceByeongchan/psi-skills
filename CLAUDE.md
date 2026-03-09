@@ -19,12 +19,21 @@ skills/
 ├── psi-update-computer/# Update a computer's configuration
 ├── psi-run-calc/       # Run a calculation on remote HPC
 ├── psi-rebuild-index/  # Rebuild index from front matter
-└── psi-fetch-struct/   # Fetch structure from Materials Project
+├── psi-fetch-struct/   # Fetch structure from Materials Project
+├── psi-qe-input-generator/ # Generate QE input (pw.x + post-processing)
+├── psi-qe-input-validator/ # Validate QE input against official flags
+├── psi-bgw-pw2bgw/         # Generate pw2bgw.inp (QE → BGW format)
+├── psi-bgw-parabands/      # Generate parabands.inp (many empty bands via pseudobands)
+├── psi-bgw-epsilon/        # Generate epsilon.inp (dielectric function)
+├── psi-bgw-sigma/          # Generate sigma.inp (self-energy / QP correction)
+├── psi-bgw-gw-conv-sigma/  # Convergence sweep: sigma-only (fixed epsmat)
+├── psi-bgw-gw-conv-epsilon/# Convergence sweep: epsilon+sigma (coarse q-grid)
+└── psi-bgw-gw-conv-analyze/# Parse sigma.out → QP gap convergence table
 ```
 
 Each directory contains:
 - `SKILL.md` — Skill prompt (usage, rules, execution instructions)
-- `*.py` — Self-contained Python script (depends on PyYAML; `psi-fetch-struct` additionally requires `pymatgen` and `mp-api`)
+- `*.py` — Self-contained Python script (depends on PyYAML; `psi-fetch-struct` and `psi-qe-input-generator` additionally require `pymatgen`)
 
 ## Design Principles
 

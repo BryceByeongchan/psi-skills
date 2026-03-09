@@ -1,0 +1,63 @@
+{
+  "program": "bands.x",
+  "namelists": {
+    "BANDS": {
+      "prefix": {
+        "default": "pwscf",
+        "info": "prefix of files saved by program pw.x",
+        "type": "CHARACTER"
+      },
+      "outdir": {
+        "info": "directory containing the input data, i.e. the same as in pw.x",
+        "type": "CHARACTER"
+      },
+      "filband": {
+        "default": "bands.out",
+        "info": "file name for band output (to be read by \"plotband.x\")",
+        "type": "CHARACTER"
+      },
+      "spin_component": {
+        "info": "In the lsda case select:\n\n1 = spin-up\n2 = spin-down",
+        "type": "INTEGER"
+      },
+      "lp": {
+        "default": false,
+        "info": "If .true. matrix elements of the momentum operator p between\nconduction and valence bands are computed and written to file\nspecified in filp.\nThe matrix elements include the contribution from the nonlocal\npotential, i*m*[V_nl, x]. In other words, the calculated matrix elements\nare those of the velocity operator i*m*[H, x] times mass, not those of\nthe true momentum operator.",
+        "type": "LOGICAL"
+      },
+      "filp": {
+        "default": "p_avg.dat",
+        "info": "If lp is set to .true., file name for matrix elements of p",
+        "type": "CHARACTER"
+      },
+      "lsym": {
+        "default": true,
+        "info": "If .true. the bands are classified according to the\nirreducible representations of the small group of k.\nA file \"filband\".rap with the same format of \"filband\"\nis written, for usage by \"plotband.x\"",
+        "type": "LOGICAL"
+      },
+      "no_overlap": {
+        "default": true,
+        "info": "If .false., and if lsym is .false., writes the eigenvalues\nin the order that maximises overlap with the neighbor k-points",
+        "type": "LOGICAL"
+      },
+      "plot_2d": {
+        "default": false,
+        "info": "If .true. writes the eigenvalues in the output file\nin a 2D format readable by gnuplot. Band ordering is not\nchanged. Each band is written in a different file called\nfilband.# with the format:\n\nxk, yk, energy\nxk, yk, energy\n.. .. ..\n\nenergies are written in eV and xk in units 2\\pi/a.",
+        "type": "LOGICAL"
+      },
+      "lsigma": {
+        "info": "If true computes expectation values of the spin operator\non the spinor wave-functions (only in the noncollinear case),\nwrites them to a file \"filband\".i, i=1,2,3",
+        "type": "LOGICAL",
+        "is_array": true
+      },
+      "firstk": {
+        "type": "INTEGER",
+        "info": "if lsym=.true. makes the symmetry analysis only for k\npoints between firstk to lastk"
+      },
+      "lastk": {
+        "type": "INTEGER",
+        "info": "if lsym=.true. makes the symmetry analysis only for k\npoints between firstk to lastk"
+      }
+    }
+  }
+}

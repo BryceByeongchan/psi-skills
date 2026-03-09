@@ -1,0 +1,147 @@
+{
+  "program": "pp.x",
+  "namelists": {
+    "INPUTPP": {
+      "title": {
+        "default": " ",
+        "info": "reprinted on output, CUB files and other places",
+        "type": "CHARACTER"
+      },
+      "prefix": {
+        "info": "prefix of files saved by program pw.x",
+        "type": "CHARACTER"
+      },
+      "outdir": {
+        "info": "directory containing the input data, i.e. the same as in pw.x",
+        "type": "CHARACTER"
+      },
+      "filplot": {
+        "default": "tmp.pp",
+        "info": "file \"filplot\" contains the quantity selected by plot_num.\nTypically this is a temporary file and may be ignored,\nunless you want to save it for further processing",
+        "type": "CHARACTER"
+      },
+      "plot_num": {
+        "default": -1,
+        "info": "Selects what to save in filplot:\n\n-1 = do not do anything, skip step (1) (see header)\n\n0 = electron (pseudo-)charge density\n\n1 = total potential V_bare + V_H + V_xc\n\n2 = local ionic potential V_bare\n\n3 = local density of states at specific energy or grid of energies\n(number of states per volume, in bohr^3, per energy unit, in Ry)\n\n4 = local density of electronic entropy\n\n5 = STM images\nTersoff and Hamann, PRB 31, 805 (1985)\n\n6 = spin polarization (rho(up)-rho(down))\n\n7 = contribution of selected wavefunction(s) to the\n(pseudo-)charge density. For norm-conserving PPs,\n|psi|^2 (psi=selected wavefunction). Noncollinear case:\ncontribution of the given state to the charge or\nto the magnetization along the direction indicated\nby spin_component (0 = charge, 1 = x, 2 = y, 3 = z )\n\n8 = electron localization function (ELF)\n\n9 = charge density minus superposition of atomic densities\n\n10 = integrated local density of states (ILDOS)\nfrom emin to emax (emin, emax in eV)\nif emax is not specified, emax=E_fermi\n\n11 = the V_bare + V_H potential\n\n12 = the sawtooth electric field potential (if present)\n\n13 = the noncollinear magnetization.\n\n17 = all-electron valence charge density\ncan be performed for PAW calculations only\nrequires a very dense real-space grid!\n\n18 = The exchange and correlation magnetic field in the noncollinear case\n\n19 = Reduced density gradient\n( J. Chem. Theory Comput. 7, 625 (2011), doi:10.1021/ct100641a )\nSet the isosurface between 0.3 and 0.6 to plot the\nnon-covalent interactions (see also plot_num = 20)\n\n20 = Product of the electron density (charge) and the second\neigenvalue of the electron-density Hessian matrix;\nused to colorize the RDG plot (plot_num = 19)\n\n21 = all-electron charge density (valence+core).\nFor PAW calculations only; requires a very dense real-space grid.\n\n22 = kinetic energy density\n\n23 = the charge density of states between emin & emax\n\n123 = DORI: density overlap regions indicator\n(doi: 10.1021/ct500490b) Implemented by D. Yang & Q.Liu\n\n24 [truncated]",
+        "type": "INTEGER"
+      },
+      "spin_component": {
+        "info": "Noncollinear case only:\nplot the contribution of the given state(s) to the charge\nor to the magnetization along the direction(s) indicated\nby spin_component:\n0 = charge (default),\n1 = x,\n2 = y,\n3 = z.\n\nIgnored in unpolarized or LSDA case\n\nTo plot a single component ispin, specify spin_component=ispin or spin_component(1)=ispin\nTo plot a range of components [imin, imax], specify spin_component(1)=imin and spin_component(2)=imax",
+        "type": "INTEGER",
+        "is_array": true
+      },
+      "emin": {
+        "info": "lower energy boundary (in eV)",
+        "type": "REAL"
+      },
+      "emax": {
+        "info": "upper energy boundary (in eV),\ni.e. compute ILDOS from emin to emax",
+        "type": "REAL"
+      },
+      "delta_e": {
+        "info": "spacing of energy grid (in eV).",
+        "type": "REAL"
+      },
+      "degauss_ldos": {
+        "info": "broadening of energy levels for LDOS (in eV).\n\nDefaults to broadening degauss specified for electronic smearing\nin pw.x calculation.",
+        "type": "REAL"
+      },
+      "use_gauss_ldos": {
+        "default": false,
+        "info": "If .true., gaussian broadening (ngauss=0) is used for LDOS calculation.\n\nDefaults .false., in which case the broadening scheme\nof the pw.x calculation will be used.",
+        "type": "LOGICAL"
+      },
+      "sample_bias": {
+        "info": "the bias of the sample (Ry) in stm images",
+        "type": "REAL"
+      },
+      "lsign": {
+        "info": "if true and k point is Gamma, plot |psi|^2 sign(psi)",
+        "type": "LOGICAL"
+      },
+      "nc": {
+        "info": "nc(1), nc(2), and nc(3) indicate the size of the\nsupercell for the visualization of the squared modulus of\nthe Hubbard projector functions.\nNote, this supercell must match the k-points grid size\notherwise the resulting WFs are wrong.",
+        "type": "INTEGER"
+      },
+      "n0": {
+        "info": "n0(1), n0(2), and n0(3) indicate the shift\nof the coordinate frame in units of the\nlattice vectors for a better visualization\nof the Hubbard projector functions",
+        "type": "INTEGER"
+      },
+      "kpoint": {
+        "info": "Unpolarized and noncollinear case:\nk-point(s) to be plotted\nLSDA:\nk-point(s) and spin polarization to be plotted\n(spin-up and spin-down correspond to different k-points!)\n\nTo plot a single kpoint ikpt, specify kpoint=ikpt or kpoint(1)=ikpt\nTo plot a range of kpoints [imin, imax], specify kpoint(1)=imin and kpoint(2)=imax",
+        "type": "INTEGER",
+        "is_array": true
+      },
+      "kband": {
+        "info": "Band(s) to be plotted.\n\nTo plot a single band ibnd, specify kband=ibnd or kband(1)=ibnd\nTo plot a range of bands [imin, imax], specify kband(1)=imin and kband(2)=imax",
+        "type": "INTEGER",
+        "is_array": true
+      }
+    },
+    "PLOT": {
+      "nfile": {
+        "info": "the number of data files to read",
+        "type": "INTEGER"
+      },
+      "iflag": {
+        "info": "0 = 1D plot of the spherical average\n1 = 1D plot\n2 = 2D plot\n3 = 3D plot\n4 = 2D polar plot on a sphere",
+        "type": "INTEGER"
+      },
+      "output_format": {
+        "info": "(ignored on 1D plot)\n\n0 = format suitable for gnuplot (1D)\n\n1 = obsolete format no longer supported\n\n2 = format suitable for plotrho (2D)\n\n3 = format suitable for XCRYSDEN (2D or user-supplied 3D region)\n\n4 = obsolete format no longer supported\n\n5 = format suitable for XCRYSDEN (3D, using entire FFT grid)\n\n6 = format as gaussian cube file (3D)\n(can be read by many programs)\n\n7 = format suitable for gnuplot (2D) x, y, f(x,y)",
+        "type": "INTEGER"
+      },
+      "fileout": {
+        "default": "standard output",
+        "info": "name of the file to which the plot is written",
+        "type": "CHARACTER"
+      },
+      "interpolation": {
+        "default": "fourier",
+        "info": "Type of interpolation:\n'bspline': (EXPERIMENTAL)",
+        "options": [
+          "bspline",
+          "fourier"
+        ],
+        "type": "CHARACTER"
+      },
+      "nx": {
+        "type": "INTEGER",
+        "info": "Number of points in the polar plane:\n\nphi(i) = 2 pi * (i - 1)/(nx-1), i=1, nx\ntheta(j) = pi * (j - 1)/(ny-1), j=1, ny"
+      },
+      "radius": {
+        "info": "Radius of the sphere (alat units), centered at (0,0,0)",
+        "type": "REAL"
+      },
+      "filepp": {
+        "default": "filepp(1)='tmp.pp",
+        "info": "nfile = 1 : file containing the quantity to be plotted\n(should be the same as filplot)\nnfile > 1 : see weight",
+        "type": "CHARACTER",
+        "is_array": true
+      },
+      "weight": {
+        "info": "weighing factors: assuming that rho(i) is the quantity\nread from filepp(i), the quantity that will be plotted is:\n\nweight(1)*rho(1) + weight(2)*rho(2) + weight(3)*rho(3) + ...",
+        "type": "REAL",
+        "is_array": true
+      },
+      "e1": {
+        "info": "3D vector which determines the plotting line (in alat units)",
+        "type": "REAL",
+        "is_array": true
+      },
+      "x0": {
+        "info": "3D vector, origin of the parallelepiped\n\nx0 is in alat units !",
+        "type": "REAL",
+        "is_array": true
+      },
+      "ny": {
+        "type": "INTEGER",
+        "info": "Number of points in the polar plane:\n\nphi(i) = 2 pi * (i - 1)/(nx-1), i=1, nx\ntheta(j) = pi * (j - 1)/(ny-1), j=1, ny"
+      },
+      "nz": {
+        "type": "INTEGER",
+        "info": "Number of points in the parallelepiped:\n\nrho(i,j,k) = rho( x0 + e1 * (i-1)/nx\n+ e2 * (j-1)/ny\n+ e3 * (k-1)/nz ),\ni = 1, nx ; j = 1, ny ; k = 1, nz\n\n- If output_format = 3 (XCRYSDEN), the above variables\nare used to determine the grid to plot.\n\n- If output_format = 5 (XCRYSDEN), the above variables\nare ignored, the entire FFT grid is written in the\nXCRYSDEN format - works for any crystal axis (VERY FAST)\n\n- If e1, e2, e3, x0 are present,\nand e1, e2, e3 are parallel to xyz\nand parallel to crystal axis, a subset of the FFT\ngrid that approximately covers the parallelepiped\ndefined by e1, e2, e3, x0, is\nwritten - untested, might be obsolete\n\n- Otherwise, the required 3D grid is generated from the\nFourier components (may be VERY slow)"
+      }
+    }
+  }
+}

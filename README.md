@@ -11,7 +11,7 @@ Claude Code skills for computational research provenance tracking. Manages calcu
 This will:
 - Verify Python >= 3.10 is installed
 - Install PyYAML dependency if needed
-- Copy all 14 skills to `.claude/skills/`
+- Copy all 17 skills to `.claude/skills/`
 
 ### Materials Project API Key (for `/psi-fetch-struct`)
 
@@ -50,6 +50,9 @@ Invoke skills with `/` prefix in Claude Code:
 | `/psi-update-computer <name> [field=value ...]` | Update a computer's configuration |
 | `/psi-remove-computer <name>` | Remove a computer |
 | `/psi-fetch-struct <query> [output_dir:path]` | Fetch structure from Materials Project |
+| `/psi-qe-input-generator <structure_file> <calc_type> [options...]` | Generate QE input with physics-aware suggestions (magnetic, metallic, DFT+U, SOC) |
+| `/psi-qe-input-validator <input_file> [executable:...]` | Validate QE input with physics context from official documentation |
+| `/psi-qe-plotbands <xml_file> [options...]` | Plot band structure from QE bands.x XML output |
 
 ## How It Works
 

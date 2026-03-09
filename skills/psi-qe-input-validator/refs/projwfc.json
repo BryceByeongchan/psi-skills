@@ -1,0 +1,102 @@
+{
+  "program": "projwfc.x",
+  "namelists": {
+    "PROJWFC": {
+      "prefix": {
+        "default": "pwscf",
+        "info": "prefix of input file produced by pw.x (wavefunctions are needed)",
+        "type": "CHARACTER"
+      },
+      "outdir": {
+        "info": "directory containing the input data, i.e. the same as in pw.x",
+        "type": "CHARACTER"
+      },
+      "ngauss": {
+        "default": 0,
+        "info": "Type of gaussian broadening:\n0 ... Simple Gaussian (default)\n1 ... Methfessel-Paxton of order 1\n-1 ... \"cold smearing\" (Marzari-Vanderbilt-DeVita-Payne)\n-99 ... Fermi-Dirac function",
+        "type": "INTEGER"
+      },
+      "degauss": {
+        "default": 0.0,
+        "info": "gaussian broadening, Ry (not eV!)",
+        "type": "REAL"
+      },
+      "deltae": {
+        "info": "energy grid step (eV)",
+        "type": "REAL"
+      },
+      "lsym": {
+        "default": true,
+        "info": "if .true. the projections are symmetrized,\nthe partial density of states are computed\nif .false. the projections are not symmetrized, the partial\nDOS can be computed only in the k-resolved case",
+        "type": "LOGICAL"
+      },
+      "diag_basis": {
+        "default": false,
+        "info": "if .false. the projections of Kohn-Sham states are\ndone on the orthogonalized atomic orbitals\nin the global XYZ coordinate frame.\nif .true. the projections of Kohn-Sham states are\ndone on the orthogonalized atomic orbitals\nthat are rotated to the basis in which the\natomic occupation matrix is diagonal\n(i.e. local XYZ coordinate frame).",
+        "type": "LOGICAL"
+      },
+      "pawproj": {
+        "default": false,
+        "info": "if .true. use PAW projectors and all-electron PAW basis\nfunctions to calculate weight factors for the partial\ndensities of states. Following Bloechl, PRB 50, 17953 (1994),\nEq. (4 & 6), the weight factors thus approximate the real\ncharge within the augmentation sphere of each atom.\nOnly for PAW, not implemented in the noncolinear case.",
+        "type": "LOGICAL"
+      },
+      "filpdos": {
+        "info": "prefix for output files containing PDOS(E)",
+        "type": "CHARACTER"
+      },
+      "filproj": {
+        "default": "(standard output)",
+        "info": "file containing the projections",
+        "type": "CHARACTER"
+      },
+      "lwrite_overlaps": {
+        "default": false,
+        "info": "if .true., the overlap matrix of the atomic orbitals\nprior to orthogonalization is written to \"atomic_proj.xml\".\nDoes not work together with parallel diagonalization:\nfor parallel runs, use \"mpirun -np N projwfc.x -nd 1 ... \"",
+        "type": "LOGICAL"
+      },
+      "lbinary_data": {
+        "default": false,
+        "info": "CURRENTLY DISABLED.\nif .true., write atomic projections to a binary file.",
+        "type": "LOGICAL"
+      },
+      "kresolveddos": {
+        "default": false,
+        "info": "if .true. the k-resolved DOS is computed: not summed over\nall k-points but written as a function of the k-point index.\nIn this case all k-point weights are set to unity",
+        "type": "LOGICAL"
+      },
+      "tdosinboxes": {
+        "default": false,
+        "info": "if .true. compute the local DOS integrated in volumes\n\nVolumes are defined as boxes with edges parallel to the unit cell,\ncontaining the points of the (charge density) FFT grid included within\nirmin and irmax, in the three dimensions:\n\nfrom irmin(j,n) to irmax(j,n) for j=1,2,3 (n=1,n_proj_boxes).",
+        "type": "LOGICAL"
+      },
+      "n_proj_boxes": {
+        "default": 1,
+        "info": "number of boxes where the local DOS is computed",
+        "type": "INTEGER"
+      },
+      "plotboxes": {
+        "default": false,
+        "info": "if .true., the boxes are written in output as xsf files with\n3D datagrids, valued 1.0 inside the box volume and 0 outside\n(visualize them as isosurfaces with isovalue 0.5)",
+        "type": "LOGICAL"
+      },
+      "emin": {
+        "type": "REAL",
+        "info": "min & max energy (eV) for DOS plot"
+      },
+      "emax": {
+        "type": "REAL",
+        "info": "min & max energy (eV) for DOS plot"
+      },
+      "irmin": {
+        "info": "first point of the given box\n\nBEWARE: irmin is a 2D array of the form: irmin(3,n_proj_boxes)",
+        "type": "INTEGER",
+        "is_array": true
+      },
+      "irmax": {
+        "info": "last point of the given box;\n( 0 stands for the last point in the FFT grid )\n\nBEWARE: irmax is a 2D array of the form: irmax(3,n_proj_boxes)",
+        "type": "INTEGER",
+        "is_array": true
+      }
+    }
+  }
+}

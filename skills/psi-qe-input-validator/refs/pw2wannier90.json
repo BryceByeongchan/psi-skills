@@ -1,0 +1,171 @@
+{
+  "program": "pw2wannier90.x",
+  "namelists": {
+    "INPUTPP": {
+      "prefix": {
+        "info": "prefix of files saved by program pw.x",
+        "type": "CHARACTER"
+      },
+      "outdir": {
+        "info": "directory containing the input data, i.e. the same as in pw.x",
+        "type": "CHARACTER"
+      },
+      "seedname": {
+        "default": "wannier",
+        "info": "Seedname for the wannier90 calculation.",
+        "type": "CHARACTER"
+      },
+      "spin_component": {
+        "default": "none",
+        "info": "Spin component.\n'up': spin up for collinear spin calculation\n'down': spin down for collinear spin calculation\n'none': for no-spin or non-collinear calculation",
+        "type": "CHARACTER"
+      },
+      "wan_mode": {
+        "default": "standalone",
+        "info": "'standalone': for standalone execution of wannier90\n'library': for wannier90 library mode",
+        "type": "CHARACTER"
+      },
+      "write_unk": {
+        "default": false,
+        "info": "if .TRUE. write the periodic part of the Bloch functions in real space for plotting\nthe Wannier functions in wannier90.",
+        "type": "LOGICAL"
+      },
+      "reduce_unk": {
+        "default": false,
+        "info": "if .TRUE. reduce file-size (and resolution) of the real-space Bloch functions\nby a factor of reduce_unk_factor along each direction.\nOnly relevant if write_unk = .true.",
+        "type": "LOGICAL"
+      },
+      "reduce_unk_factor": {
+        "info": "The reduction factor per direction for reduce_unk. Default 2 means a reduction\nof 2x2x2 = 8 of the total number of grid points.\nOnly relevant if write_unk = .true.",
+        "type": "INTEGER"
+      },
+      "wvfn_formatted": {
+        "default": false,
+        "info": "if .TRUE. write the wavefunctions in Fortran formatted form.\nOnly relevant if write_unk = .true.",
+        "type": "LOGICAL"
+      },
+      "write_amn": {
+        "default": true,
+        "info": "Set to .false. if A(k) is not required.",
+        "type": "LOGICAL"
+      },
+      "scdm_proj": {
+        "default": false,
+        "info": "Set to .true. to compute amn using the SCDM projection.",
+        "type": "LOGICAL"
+      },
+      "scdm_entanglement": {
+        "default": "isolated",
+        "info": "'isolated': use SCDM for isolated bands.\n'erfc': use erfc function as the SCDM occupation for entanglement bands.\n'gaussian': use gaussian function as the SCDM occupation for entanglement bands.",
+        "type": "CHARACTER"
+      },
+      "scdm_mu": {
+        "info": "Set to the chemical potential for the SCDM occupation.\nOnly relevant if scdm_entanglement = 'erfc' or 'gaussian'.",
+        "type": "REAL"
+      },
+      "scdm_sigma": {
+        "info": "Set to the smearing for the SCDM occupation.\nOnly relevant if scdm_entanglement = 'erfc' or 'gaussian'.",
+        "type": "REAL"
+      },
+      "atom_proj": {
+        "default": false,
+        "info": "Set to .true. to compute amn using the pseudo-atomic wavefunctions\nfrom pseudopotentials as the initial projection.",
+        "type": "LOGICAL"
+      },
+      "atom_proj_ext": {
+        "default": false,
+        "info": "Set to .true. to use the external pseudo-atomic wavefunctions\nfrom the files stored in atom_proj_dir as the initial projection.\nOnly relevant if atom_proj = .true.",
+        "type": "LOGICAL"
+      },
+      "atom_proj_dir": {
+        "info": "Set to the directory containing the external pseudo-atomic wavefunctions.\nThe file names should be of the form SPECIES.dat, where SPECIES is the\nspecies name of the atom.\nFor more details, see the wannier90 user guide and examples.\nOnly relevant if atom_proj_ext = .true.",
+        "type": "CHARACTER"
+      },
+      "atom_proj_ortho": {
+        "default": true,
+        "info": "Set to .true. to orthonormalize the pseudo-atomic wavefunctions\nbefore computing the inner product between Bloch states and\nthe pseudo-atomic wavefunctions.\nIt is recommended to keep this to .true., set it to .false. only\nif you know what you are doing.\nOnly relevant if atom_proj = .true.",
+        "type": "LOGICAL"
+      },
+      "write_mmn": {
+        "default": true,
+        "info": "Set to .false. if M(k,b) is not required.",
+        "type": "LOGICAL"
+      },
+      "write_spn": {
+        "default": false,
+        "info": "Set to .true. to write out the matrix elements of spin operator\nS between Bloch states (non-collinear spin calculation only).",
+        "type": "LOGICAL"
+      },
+      "spn_formatted": {
+        "default": false,
+        "info": "Set to .true. to write spn data as a formatted file.\nOnly relevant if write_spn = .true.",
+        "type": "LOGICAL"
+      },
+      "write_uhu": {
+        "default": false,
+        "info": "Set to .true. to write out the matrix elements of\n< unk+b1 | Hk | umk+b2 >.",
+        "type": "LOGICAL"
+      },
+      "uhu_formatted": {
+        "default": false,
+        "info": "Set to .true. to write uHu data as a Fortran formatted file.\nOnly relevant if write_uHu = .true.",
+        "type": "LOGICAL"
+      },
+      "write_uiu": {
+        "default": false,
+        "info": "Set to .true. to write out the matrix elements of\n< unk+b1 | umk+b2 >.",
+        "type": "LOGICAL"
+      },
+      "uiu_formatted": {
+        "default": false,
+        "info": "Set to .true. to write uIu data as a Fortran formatted file.\nOnly relevant if write_uIu = .true.",
+        "type": "LOGICAL"
+      },
+      "write_shu": {
+        "default": false,
+        "info": "Set to .true. to write out the matrix elements of\n< unk | s H | umk+b >, which is used in the Ryoo's method\nto compute spin Hall conductivity. For more details, see the\nwannier90 user guide and examples.",
+        "type": "LOGICAL"
+      },
+      "shu_formatted": {
+        "default": false,
+        "info": "Set to .true. to write sHu data as a Fortran formatted file.\nOnly relevant if write_sHu = .true.",
+        "type": "LOGICAL"
+      },
+      "write_siu": {
+        "default": false,
+        "info": "Set to .true. to write out the matrix elements of\n< unk | s | umk+b >, which is used in the Ryoo's method\nto compute spin Hall conductivity. For more details, see the\nwannier90 user guide and examples.",
+        "type": "LOGICAL"
+      },
+      "siu_formatted": {
+        "default": false,
+        "info": "Set to .true. to write sIu data as a Fortran formatted file.\nOnly relevant if write_sIu = .true.",
+        "type": "LOGICAL"
+      },
+      "write_unkg": {
+        "default": false,
+        "info": "Set to .true. to write the first few Fourier components of the\nperiodic parts of the Bloch functions.",
+        "type": "LOGICAL"
+      },
+      "irr_bz": {
+        "default": false,
+        "info": "Set to .true. to use irreducible BZ for computing amn/mmn/eig\nfiles. To differentiate from the standard full BZ case, the\nfiles will use the extension names iamn/immn/ieig, respectively.\nFor more details, see the wannier90 user guide and examples.",
+        "type": "LOGICAL"
+      },
+      "write_dmn": {
+        "default": false,
+        "info": "Set to .true. to construct symmetry-adapted Wannier functions.",
+        "type": "LOGICAL"
+      },
+      "read_sym": {
+        "default": false,
+        "info": "Set to .true. to customize symmetry operations to be used in symmetry-adapted mode.\nWhen read_sym = .true., an additional input seedname.sym is required.\nOnly relevant if write_dmn = .true.",
+        "type": "LOGICAL"
+      },
+      "atom_proj_exclude": {
+        "info": "Set to the index of the pseudo-atomic wavefunctions to be excluded\nfrom the initial projection. This is useful for excluding the\nsemicore states from the initial projection.\nOnly relevant if atom_proj = .true.",
+        "type": "INTEGER",
+        "is_array": true
+      }
+    }
+  }
+}

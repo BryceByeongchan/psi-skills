@@ -1,0 +1,354 @@
+{
+  "program": "ph.x",
+  "namelists": {
+    "INPUTPH": {
+      "outdir": {
+        "info": "Directory containing input, output, and scratch files;\nmust be the same as specified in the calculation of\nthe unperturbed system.",
+        "type": "CHARACTER"
+      },
+      "prefix": {
+        "default": "pwscf",
+        "info": "Prepended to input/output filenames; must be the same\nused in the calculation of unperturbed system.",
+        "type": "CHARACTER"
+      },
+      "niter_ph": {
+        "info": "Maximum number of iterations in a scf step. If you want\nmore than 100, edit variable \"maxter\" in PH/phcom.f90",
+        "type": "INTEGER"
+      },
+      "tr2_ph": {
+        "default": 1e-12,
+        "info": "Threshold for self-consistency.",
+        "type": "REAL"
+      },
+      "alpha_mix": {
+        "info": "Mixing factor (for each iteration) for updating\nthe scf potential:\n\nvnew(in) = alpha_mix*vold(out) + (1-alpha_mix)*vold(in)",
+        "type": "REAL"
+      },
+      "nmix_ph": {
+        "default": 4,
+        "info": "Number of iterations used in potential mixing. Using a larger value (8~20)\ncan significantly speed up convergence, at the cost of using more memory.",
+        "type": "INTEGER"
+      },
+      "verbosity": {
+        "default": "default",
+        "info": "Options are:\n'debug'/'high'/'medium': verbose output\n'low'/'default'/'minimal': short output",
+        "options": [
+          "debug",
+          "default",
+          "high",
+          "low",
+          "medium",
+          "minimal"
+        ],
+        "type": "CHARACTER"
+      },
+      "reduce_io": {
+        "default": false,
+        "info": "Reduce I/O to the strict minimum.\n\nBEWARE: If the input flag reduce_io=.true. was\nused, it is not allowed to restart from an interrupted\nrun.",
+        "type": "LOGICAL"
+      },
+      "max_seconds": {
+        "default": 10000000.0,
+        "info": "Maximum allowed run time before the job stops smoothly.",
+        "type": "REAL"
+      },
+      "dftd3_hess": {
+        "default": "prefix.hess",
+        "info": "File where the D3 dispersion hessian matrix is read. Set to\n'automatic.hess' to enable automatic mode (experimental). In\nthis mode, D3 Hessian is computed if 'automatic.hess' file is\nmissing.",
+        "type": "CHARACTER"
+      },
+      "fildyn": {
+        "default": "matdyn",
+        "info": "File where the dynamical matrix is written.",
+        "type": "CHARACTER"
+      },
+      "fildrho": {
+        "default": " ",
+        "info": "File where the charge density responses are written. Note that the file\nwill actually be saved as ${outdir/_ph0/${prefix}.${fildrho}1}\nwhere ${outdir}, ${prefix} and ${fildrho} are the values of the\ncorresponding input variables",
+        "type": "CHARACTER"
+      },
+      "fildvscf": {
+        "default": " ",
+        "info": "File where the the potential variation is written\n(for later use in electron-phonon calculation, see also fildrho).",
+        "type": "CHARACTER"
+      },
+      "epsil": {
+        "default": false,
+        "info": "If .true. in a q=0 calculation for a non metal the\nmacroscopic dielectric constant of the system is\ncomputed. Do not set epsil to .true. if you have a\nmetallic system or q/=0: the code will complain and stop.\n\nNote: the input value of epsil will be ignored if ldisp=.true.\n(the code will automatically set epsil to .false. for metals,\nto .true. for insulators: see routine PHonon/PH/prepare_q.f90).",
+        "type": "LOGICAL"
+      },
+      "lrpa": {
+        "default": false,
+        "info": "If .true. the dielectric constant is calculated at the\nRPA level with DV_xc=0.",
+        "type": "LOGICAL"
+      },
+      "lnoloc": {
+        "default": false,
+        "info": "If .true. the dielectric constant is calculated without\nlocal fields, i.e. by setting DV_H=0 and DV_xc=0.",
+        "type": "LOGICAL"
+      },
+      "trans": {
+        "default": true,
+        "info": "If .false. the phonons are not computed.\nIf trans .and. epsil are both .true.,\nthe effective charges are calculated.\nIf ldisp is .true., trans=.false. is overridden\n(except for the case of electron-phonon calculations)",
+        "type": "LOGICAL"
+      },
+      "lraman": {
+        "default": false,
+        "info": "If .true. calculate non-resonant Raman coefficients\nusing second-order response as in:\nM. Lazzeri and F. Mauri, PRL 90, 036401 (2003).",
+        "type": "LOGICAL"
+      },
+      "eth_rps": {
+        "default": 1e-09,
+        "info": "Threshold for calculation of Pc R |psi>.",
+        "type": "REAL"
+      },
+      "eth_ns": {
+        "default": 1e-12,
+        "info": "Threshold for non-scf wavefunction calculation.",
+        "type": "REAL"
+      },
+      "dek": {
+        "default": 0.001,
+        "info": "Delta_xk used for wavefunction derivation wrt k.",
+        "type": "REAL"
+      },
+      "recover": {
+        "default": false,
+        "info": "If .true. restart from an interrupted run.",
+        "type": "LOGICAL"
+      },
+      "low_directory_check": {
+        "default": false,
+        "info": "If .true. search in the phsave directory only the\nquantities requested in input.",
+        "type": "LOGICAL"
+      },
+      "only_init": {
+        "default": false,
+        "info": "If .true. only the bands and other initialization quantities are calculated.\n(used for GRID parallelization)",
+        "type": "LOGICAL"
+      },
+      "qplot": {
+        "default": false,
+        "info": "If .true. a list of q points is read from input.",
+        "type": "LOGICAL"
+      },
+      "q2d": {
+        "default": false,
+        "info": "If .true. three q points and relative weights are\nread from input. The three q points define the rectangle\nq(:,1) + l (q(:,2)-q(:,1)) + m (q(:,3)-q(:,1)) where\n0< l,m < 1. The weights are integer and those of points two\nand three are the number of points in the two directions.",
+        "type": "LOGICAL"
+      },
+      "q_in_band_form": {
+        "default": false,
+        "info": "This flag is used only when qplot is .true. and q2d is\n.false.. When .true. each couple of q points q(:,i+1) and\nq(:,i) define the line from q(:,i) to q(:,i+1) and nq\npoints are generated along that line. nq is the weigth of\nq(:,i). When .false. only the list of q points given as\ninput is calculated. The weights are not used.",
+        "type": "LOGICAL"
+      },
+      "electron_phonon": {
+        "default": " ",
+        "info": "Options are:\n'simple': Electron-phonon lambda coefficients are computed\nfor a given q and a grid of k-points specified by\nthe variables nk1, nk2, nk3, k1, k2, k3.\n'interpolated': Electron-phonon is calculated by interpolation\nover the Brillouin Zone as in M. Wierzbowska, et\nal. arXiv:cond-mat/0504077\n'lambda_tetra': The electron-phonon coefficient \\lambda_{q \\nu}\nis calculated with the optimized tetrahedron method.\n'gamma_tetra': The phonon linewidth \\gamma_{q \\nu} is calculated\nfrom the electron-phonon interactions\nusing the optimized tetrahedron method.\n'epa': Electron-phonon coupling matrix elements are written\nto file prefix.epa.k for further processing by program\nepa.x which implements electron-phonon averaged (EPA)\napproximation as described in G. Samsonidze & B. Kozinsky,\nAdv. Energy Mater. 2018, 1800246 doi:10.1002/aenm.201800246\narXiv:1511.08115\n'ahc': Quantities required for the calculation of phonon-induced\nelectron self-energy are computed and written to the directory\nahc_dir. The output files can be read by postahc.x for\nthe calculation of electron self-energy.\nAvailable for both metals and insulators.\ntrans=.false. is required.",
+        "options": [
+          "ahc",
+          "epa",
+          "gamma_tetra",
+          "interpolated",
+          "lambda_tetra",
+          "simple"
+        ],
+        "type": "CHARACTER"
+      },
+      "el_ph_nsigma": {
+        "default": 10,
+        "info": "The number of double-delta smearing values used in an\nelectron-phonon coupling calculation.",
+        "type": "INTEGER"
+      },
+      "el_ph_sigma": {
+        "default": 0.02,
+        "info": "The spacing between double-delta smearing values used in\nan electron-phonon coupling calculation.",
+        "type": "REAL"
+      },
+      "ahc_dir": {
+        "default": "outdir // 'ahc_dir/",
+        "info": "Directory where the output binary files are written.",
+        "type": "CHARACTER"
+      },
+      "ahc_nbnd": {
+        "info": "Number of bands for which the electron self-energy is to be computed.",
+        "type": "INTEGER"
+      },
+      "ahc_nbndskip": {
+        "default": 0,
+        "info": "Number of bands to exclude when computing the self-energy. Self-energy\nis computed for bands with indices from ahc_nbndskip+1 to\nahc_nbndskip+ahc_nbnd. ahc_nbndskip+ahc_nbnd cannot\nexceed nbnd of the preceding SCF or NSCF calculation.",
+        "type": "INTEGER"
+      },
+      "skip_upper": {
+        "default": false,
+        "info": "If .true., skip calculation of the upper Fan self-energy, which\ninvolves solving the Sternheimer equation.",
+        "type": "LOGICAL"
+      },
+      "lshift_q": {
+        "default": false,
+        "info": "Use a wave-vector grid displaced by half a grid step\nin each direction - meaningful only when ldisp is .true.\nWhen this option is set, the q2r.x code cannot be used.",
+        "type": "LOGICAL"
+      },
+      "zeu": {
+        "info": "If .true. in a q=0 calculation for a non metal the\neffective charges are computed from the dielectric\nresponse. This is the default algorithm. If epsil=.true.\nand zeu=.false. only the dielectric tensor is calculated.",
+        "type": "LOGICAL"
+      },
+      "zue": {
+        "default": false,
+        "info": "If .true. in a q=0 calculation for a non metal the\neffective charges are computed from the phonon\ndensity responses. This is an alternative algorithm,\ndifferent from the default one (if trans .and. epsil )\nThe results should be the same within numerical noise.",
+        "type": "LOGICAL"
+      },
+      "elop": {
+        "default": false,
+        "info": "If .true. calculate electro-optic tensor.",
+        "type": "LOGICAL"
+      },
+      "fpol": {
+        "default": false,
+        "info": "If .true. calculate dynamic polarizabilities\nRequires epsil=.true. ( experimental stage:\nsee example09 for calculation of methane ).",
+        "type": "LOGICAL"
+      },
+      "ldisp": {
+        "default": false,
+        "info": "If .true. the run calculates phonons for a grid of\nq-points specified by nq1, nq2, nq3 - for direct\ncalculation of the entire phonon dispersion.",
+        "type": "LOGICAL"
+      },
+      "nogg": {
+        "default": false,
+        "info": "If .true. disable the \"gamma_gamma\" trick used to speed\nup calculations at q=0 (phonon wavevector) if the sum over\nthe Brillouin Zone includes k=0 only. The gamma_gamma\ntrick exploits symmetry and acoustic sum rule to reduce\nthe number of linear response calculations to the strict\nminimum, as it is done in code phcg.x.",
+        "type": "LOGICAL"
+      },
+      "asr": {
+        "default": false,
+        "info": "Apply Acoustic Sum Rule to dynamical matrix, effective charges\nWorks only in conjunction with \"gamma_gamma\" tricks (see above)",
+        "type": "LOGICAL"
+      },
+      "ldiag": {
+        "default": false,
+        "info": "If .true. forces the diagonalization of the dynamical\nmatrix also when only a part of the dynamical matrix\nhas been calculated. It is used together with start_irr\nand last_irr. If all modes corresponding to a\ngiven irreducible representation have been calculated,\nthe phonon frequencies of that representation are\ncorrect. The others are zero or wrong. Use with care.",
+        "type": "LOGICAL"
+      },
+      "lqdir": {
+        "default": false,
+        "info": "If .true. ph.x creates inside outdir a separate subdirectory\nfor each q vector. The flag is set to .true. when ldisp=.true.\nand fildvscf /= ' ' or when an electron-phonon\ncalculation is performed. The induced potential is saved\nseparately for each q inside the subdirectories.",
+        "type": "LOGICAL"
+      },
+      "search_sym": {
+        "default": true,
+        "info": "Set it to .false. if you want to disable the mode\nsymmetry analysis.",
+        "type": "LOGICAL"
+      },
+      "diagonalization": {
+        "default": "david",
+        "info": "Diagonalization method for the non-SCF calculations.\n'david': Davidson iterative diagonalization with overlap matrix\n(default). Fast, may in some rare cases fail.\n'cg': Conjugate-gradient-like band-by-band diagonalization.\nSlower than 'david' but uses less memory and is\n(a little bit) more robust.",
+        "options": [
+          "cg",
+          "david"
+        ],
+        "type": "CHARACTER"
+      },
+      "read_dns_bare": {
+        "default": false,
+        "info": "If .true. the PH code tries to read three files in the DFPT+U\ncalculation: dns_orth, dns_bare, d2ns_bare.\ndns_orth and dns_bare are the first-order variations of\nthe occupation matrix, while d2ns_bare is the second-order\nvariation of the occupation matrix. These matrices are\ncomputed only once during the DFPT+U calculation. However,\ntheir calculation (especially of d2ns_bare) is computationally\nexpensive, this is why they are written to file and then can be\nread (e.g. for restart) in order to save time.",
+        "type": "LOGICAL"
+      },
+      "ldvscf_interpolate": {
+        "default": false,
+        "info": "If .true., use Fourier interpolation of phonon potential\nto compute the induced part of phonon potential at each\nq point. Results of a dvscf_q2r.x run is needed.\nRequires trans = .false..",
+        "type": "LOGICAL"
+      },
+      "wpot_dir": {
+        "default": "outdir // 'w_pot/",
+        "info": "Directory where the w_pot binary files are written.\nMust be the same with wpot_dir used in dvscf_q2r.x.\nThe real space potential files are stored in wpot_dir\nwith names ${prefix}.wpot.irc${irc}//\"1\".",
+        "type": "CHARACTER"
+      },
+      "do_long_range": {
+        "default": false,
+        "info": "If .true., add the long-range part of the potential\nto the Fourier interpolated potential as in:\nS. Ponce et al, J. Chem. Phys. 143, 102813 (2015).\nReads dielectric matrix and Born effective charges from\nthe ${wpot_dir}/tensors.dat file, written in dvscf_q2r.x.\nCurrently, only the dipole (Frohlich) part is implemented.\nThe quadrupole part is not implemented.",
+        "type": "LOGICAL"
+      },
+      "do_charge_neutral": {
+        "default": false,
+        "info": "If .true., impose charge neutrality on the Born effective\ncharges. Used only if do_long_range = .true..",
+        "type": "LOGICAL"
+      },
+      "start_irr": {
+        "default": 1,
+        "info": "Perform calculations only from start_irr to last_irr\nirreducible representations.\n\nIMPORTANT:\n* start_irr must be <= 3*nat\n* do not specify nat_todo together with\nstart_irr, last_irr",
+        "type": "INTEGER"
+      },
+      "last_irr": {
+        "info": "Perform calculations only from start_irr to last_irr\nirreducible representations.\n\nIMPORTANT:\n* start_irr must be <= 3*nat\n* do not specify nat_todo together with\nstart_irr, last_irr",
+        "type": "INTEGER"
+      },
+      "nat_todo": {
+        "info": "Choose the subset of atoms to be used in the linear response\ncalculation: nat_todo atoms, specified in input (see below)\nare displaced. Can be used to estimate modes for a molecule\nadsorbed over a surface without performing a full fledged\ncalculation. Use with care, at your own risk, and be aware\nthat this is an approximation and may not work.\nIMPORTANT:\n* nat_todo <= nat\n* if linear-response is calculated for a given atom, it\nshould also be done for all symmetry-equivalent atoms,\nor else you will get incorrect results",
+        "type": "INTEGER"
+      },
+      "modenum": {
+        "default": 0,
+        "info": "For single-mode phonon calculation : modenum is the index of the\nirreducible representation (irrep) into which the reducible\nrepresentation formed by the 3*nat atomic displacements are\ndecomposed in order to perform the phonon calculation.\nNote that a single-mode calculation will not give you the\nfrequency of a single phonon mode: in general, the selected\n\"modenum\" is not an eigenvector. What you get on output is\na column of the dynamical matrix.",
+        "type": "INTEGER"
+      },
+      "start_q": {
+        "default": 1,
+        "info": "Used only when ldisp=.true..\nComputes only the q points from start_q to last_q.\n\nIMPORTANT:\n* start_q must be <= nqs (number of q points found)\n* do not specify nat_todo together with\nstart_q, last_q",
+        "type": "INTEGER"
+      },
+      "last_q": {
+        "info": "Used only when ldisp=.true..\nComputes only the q points from start_q to last_q.\n\nIMPORTANT\n* last_q must be <= nqs (number of q points)\n* do not specify nat_todo together with\nstart_q, last_q",
+        "type": "INTEGER"
+      },
+      "dvscf_star": {
+        "info": "It contains the following components:\n\ndvscf_star%open (logical, default: .false.)\ndvscf_star%dir (character, default: outdir//\"Rotated_DVSCF\" or the\nESPRESSO_FILDVSCF_DIR environment variable)\ndvscf_star%ext (character, default: \"dvscf\") the extension to use\nfor the name of the output files, see below\ndvscf_star%basis (character, default: \"cartesian\") the basis on which\nthe rotated dvscf will be saved\ndvscf_star%pat (logical, default: false) save an optional file with the\ndisplacement patterns and q vector for each dvscf file\n\nIF dvscf_star%open is .true. use symmetry to compute and store the variation\nof the self-consistent potential on every q* in the star of the present q.\n\nThe rotated dvscf will then be stored in directory dvscf_star%dir with name\nprefix.dvscf_star%ext.q_name//\"1\". Where q_name is derived from the coordinates\nof the q-point, expressed as fractions in crystalline coordinates\n(notice that ph.x reads q-points in cartesian coordinates).\nE.g. q_cryst= (0, 0.5, -0.25) -> q_name = \"0_1o2_-1o4\"\n\nThe dvscf can be represented on a basis of cartesian 1-atom displacements\n(dvscf_star%basis='cartesian') or on the basis of the modes at the rotated q-point\n(dvscf_star%basis='modes'). Notice that the el-ph wannier code requires 'cartesian'.\nEach dvscf file comes with a corresponding pattern file with an additional \".pat\"\nsuffix; this file contains information about the basis and the q-point of the dvscf.\n\nNote: rotating dvscf can require a large amount of RAM memory and can be i/o\nintensive; in its current implementation all the operations are done\non a single processor.\nNote2: this feature is currently untested with image parallelisation.",
+        "type": "STRUCTURE"
+      },
+      "drho_star": {
+        "info": "It contains the following components:\n\ndrho_star%open (logical, default: .false.)\ndrho_star%dir (character, default: outdir//\"Rotated_DRHO\" or the\nESPRESSO_FILDRHO_DIR environment variable)\ndrho_star%ext (character, default: \"drho\") the extension to use\nfor the name of the output files, see below\ndrho_star%basis (character, default: \"modes\") the basis on which\nthe rotated drho will be saved\ndrho_star%pat (logical, default: true) save an optional file with the\ndisplacement patterns and q vector for each drho file\n\nLike dvscf_star, but for the perturbation of the charge density.\nNotice that the defaults are different.",
+        "type": "STRUCTURE"
+      },
+      "amass": {
+        "default": 0.0,
+        "info": "Atomic mass [amu] of each atomic type.\nIf not specified, masses are read from data file.",
+        "type": "REAL",
+        "is_array": true
+      },
+      "nq1": {
+        "type": "INTEGER",
+        "info": "Parameters of the Monkhorst-Pack grid (no offset) used\nwhen ldisp=.true. Same meaning as for nk1, nk2, nk3\nin the input of pw.x."
+      },
+      "nq2": {
+        "type": "INTEGER",
+        "info": "Parameters of the Monkhorst-Pack grid (no offset) used\nwhen ldisp=.true. Same meaning as for nk1, nk2, nk3\nin the input of pw.x."
+      },
+      "nq3": {
+        "type": "INTEGER",
+        "info": "Parameters of the Monkhorst-Pack grid (no offset) used\nwhen ldisp=.true. Same meaning as for nk1, nk2, nk3\nin the input of pw.x."
+      },
+      "nk1": {
+        "type": "INTEGER",
+        "info": "When these parameters are specified the phonon program\nruns a pw non-self consistent calculation with a different\nk-point grid thant that used for the charge density.\nThis occurs even in the Gamma case.\nnk1, nk2, nk3 are the parameters of the Monkhorst-Pack grid\nwith offset determined by k1, k2, k3."
+      },
+      "nk2": {
+        "type": "INTEGER",
+        "info": "When these parameters are specified the phonon program\nruns a pw non-self consistent calculation with a different\nk-point grid thant that used for the charge density.\nThis occurs even in the Gamma case.\nnk1, nk2, nk3 are the parameters of the Monkhorst-Pack grid\nwith offset determined by k1, k2, k3."
+      },
+      "nk3": {
+        "type": "INTEGER",
+        "info": "When these parameters are specified the phonon program\nruns a pw non-self consistent calculation with a different\nk-point grid thant that used for the charge density.\nThis occurs even in the Gamma case.\nnk1, nk2, nk3 are the parameters of the Monkhorst-Pack grid\nwith offset determined by k1, k2, k3."
+      },
+      "k1": {
+        "type": "INTEGER",
+        "info": "When these parameters are specified the phonon program\nruns a pw non-self consistent calculation with a different\nk-point grid thant that used for the charge density.\nThis occurs even in the Gamma case.\nnk1, nk2, nk3 are the parameters of the Monkhorst-Pack grid\nwith offset determined by k1, k2, k3."
+      },
+      "k2": {
+        "type": "INTEGER",
+        "info": "When these parameters are specified the phonon program\nruns a pw non-self consistent calculation with a different\nk-point grid thant that used for the charge density.\nThis occurs even in the Gamma case.\nnk1, nk2, nk3 are the parameters of the Monkhorst-Pack grid\nwith offset determined by k1, k2, k3."
+      },
+      "k3": {
+        "type": "INTEGER",
+        "info": "When these parameters are specified the phonon program\nruns a pw non-self consistent calculation with a different\nk-point grid thant that used for the charge density.\nThis occurs even in the Gamma case.\nnk1, nk2, nk3 are the parameters of the Monkhorst-Pack grid\nwith offset determined by k1, k2, k3."
+      }
+    }
+  }
+}

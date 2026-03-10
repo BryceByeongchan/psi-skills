@@ -10,3 +10,4 @@ build/
 # Example projects: ignore generated psi output, keep only prompt.md
 examples/*/
 !examples/*/prompt.md
+resources/

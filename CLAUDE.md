@@ -1,45 +1,37 @@
-# psi-skills
+# RUBATO
 
-A set of Claude Code skills for computational research provenance tracking. Each skill is a self-contained unit with a SKILL.md prompt and a Python script.
+**RUBATO: Research Utility Bot for Ab-initio TOolkits**
+
+A collection of Claude Code skills for ab-initio computational research. Each skill is a self-contained unit with a SKILL.md prompt and a Python script.
 
 ## Project Structure
 
 ```
 skills/
-├── psi-init/           # Initialize project (calc_db/, reports/)
-├── psi-new-calc/       # Create a new calculation
-├── psi-update-calc/    # Update calculation metadata
-├── psi-new-report/     # Create a new report
-├── psi-update-report/  # Update report metadata
-├── psi-status/         # Show project status summary
-├── psi-graph/          # Display provenance DAG
-├── psi-add-computer/   # Register a computer
-├── psi-list-computers/ # List registered computers
-├── psi-remove-computer/# Remove a computer
-├── psi-update-computer/# Update a computer's configuration
-├── psi-run-calc/       # Run a calculation on remote HPC
-├── psi-rebuild-index/  # Rebuild index from front matter
-├── psi-fetch-struct/   # Fetch structure from Materials Project
-├── psi-qe-input-generator/ # Generate QE input (pw.x + post-processing)
-├── psi-qe-input-validator/ # Validate QE input against official flags
-├── psi-bgw-pw2bgw/         # Generate pw2bgw.inp (QE → BGW format)
-├── psi-bgw-parabands/      # Generate parabands.inp (many empty bands via pseudobands)
-├── psi-bgw-epsilon/        # Generate epsilon.inp (dielectric function)
-├── psi-bgw-sigma/          # Generate sigma.inp (self-energy / QP correction)
-├── psi-bgw-gw-conv-sigma/  # Convergence sweep: sigma-only (fixed epsmat)
-├── psi-bgw-gw-conv-epsilon/# Convergence sweep: epsilon+sigma (coarse q-grid)
-└── psi-bgw-gw-conv-analyze/# Parse sigma.out → QP gap convergence table
+├── rubato-fetch-struct/          # Fetch structure from Materials Project
+├── rubato-qe-input-generator/    # Generate QE input (pw.x + post-processing)
+├── rubato-qe-input-validator/    # Validate QE input against official flags
+├── rubato-qe-plotbands/          # Plot band structure from QE bands.x XML
+├── rubato-bgw-kgridx/            # Generate kgrid.inp from XSF for k-point generation
+├── rubato-bgw-pw2bgw/            # Generate pw2bgw.inp (QE → BGW format)
+├── rubato-bgw-parabands/         # Generate parabands.inp (many empty bands via pseudobands)
+├── rubato-bgw-epsilon/           # Generate and validate epsilon.inp (dielectric function)
+├── rubato-bgw-sigma/             # Generate and validate sigma.inp (self-energy / QP correction)
+├── rubato-bgw-kernel/            # Generate and validate kernel.inp (BSE kernel)
+├── rubato-bgw-absorption/        # Generate and validate absorption.inp (BSE absorption)
+├── rubato-bgw-gw-conv-sigma/     # Convergence sweep: sigma-only (fixed epsmat)
+├── rubato-bgw-gw-conv-epsilon/   # Convergence sweep: epsilon+sigma (coarse q-grid)
+└── rubato-bgw-gw-conv-analyze/   # Parse sigma.out → QP gap convergence table
 ```
 
 Each directory contains:
 - `SKILL.md` — Skill prompt (usage, rules, execution instructions)
-- `*.py` — Self-contained Python script (depends on PyYAML; `psi-fetch-struct` and `psi-qe-input-generator` additionally require `pymatgen`)
+- `*.py` — Self-contained Python script (depends on PyYAML; `rubato-fetch-struct` and `rubato-qe-input-generator` additionally require `pymatgen`)
 
 ## Design Principles
 
-- **Self-contained scripts**: Each Python script inlines all needed utilities (frontmatter, markdown_table, filelock). No shared imports.
-- **Deterministic file ops in Python, judgment in prompts**: Scripts handle file I/O, locking, and index management. SKILL.md prompts handle argument parsing and user interaction.
-- **Computer registry is project-local**: `calc_db/computers.yaml`, created on first `psi-add-computer`.
+- **Self-contained scripts**: Each Python script inlines all needed utilities. No shared imports.
+- **Deterministic file ops in Python, judgment in prompts**: Scripts handle file I/O. SKILL.md prompts handle argument parsing and user interaction.
 
 ## Development Rules
 
@@ -47,4 +39,4 @@ Each directory contains:
 - **Every behavioral fix must become a rule in the relevant SKILL.md.** Not just a memory note.
 - **Keep rules minimal and precise.** Each rule addresses one specific failure mode.
 - **Do not create shared utility modules.** Each script must be self-contained.
-- **After adding or modifying skills, update PSI.md and README.md** to reflect the changes.
+- **After adding or modifying skills, update README.md** to reflect the changes.

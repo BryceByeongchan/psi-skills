@@ -9,16 +9,41 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Script directory
+# Script directory (where this repo lives)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Global target
+TARGET_DIR="$HOME/.claude/skills"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
+  --uninstall)
+    printf "${BLUE}Uninstalling RUBATO skills...${NC}\n"
+    REMOVED=0
+    for link in "$TARGET_DIR"/rubato-*; do
+      if [[ -L "$link" ]]; then
+        rm "$link"
+        printf "${GREEN}  ✓ Removed $(basename "$link")${NC}\n"
+        ((REMOVED++))
+      fi
+    done
+    if [[ $REMOVED -eq 0 ]]; then
+      printf "${YELLOW}No RUBATO skills found in $TARGET_DIR${NC}\n"
+    else
+      printf "${GREEN}✓ Removed $REMOVED skills${NC}\n"
+    fi
+    exit 0
+    ;;
   --help)
-    echo "Usage: ./install.sh"
+    echo "Usage: ./install.sh [--uninstall]"
     echo ""
-    echo "Installs psi-skills to the project's .claude/skills/ directory"
+    echo "Installs RUBATO skills globally to ~/.claude/skills/"
+    echo "Skills are symlinked, so 'git pull' updates them in place."
+    echo ""
+    echo "Options:"
+    echo "  --uninstall  Remove all rubato-* symlinks from ~/.claude/skills/"
+    echo "  --help       Show this help"
     exit 0
     ;;
   *)
@@ -30,7 +55,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 printf "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
-printf "${BLUE}psi-skills Installation${NC}\n"
+printf "${BLUE}RUBATO Installation${NC}\n"
 printf "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 echo ""
 
@@ -78,55 +103,43 @@ fi
 echo ""
 
 # Step 3: Set target directory
-printf "${YELLOW}[3/4] Setting up installation target...${NC}\n"
-TARGET_DIR=".claude/skills"
-
-# Create target directory if it doesn't exist
+printf "${YELLOW}[3/4] Setting up global installation target...${NC}\n"
 mkdir -p "$TARGET_DIR"
 printf "${GREEN}✓ Target: $TARGET_DIR${NC}\n"
 echo ""
 
-# Step 4: Copy skills
-printf "${YELLOW}[4/4] Installing skills...${NC}\n"
-SKILLS_TO_INSTALL=(
-  "psi-init"
-  "psi-new-calc"
-  "psi-update-calc"
-  "psi-new-report"
-  "psi-update-report"
-  "psi-status"
-  "psi-graph"
-  "psi-rebuild-index"
-  "psi-add-computer"
-  "psi-list-computers"
-  "psi-remove-computer"
-  "psi-update-computer"
-  "psi-run-calc"
-  "psi-fetch-struct"
-  "psi-qe-input-generator"
-  "psi-qe-input-validator"
-  "psi-qe-plotbands"
-  "psi-bgw-pw2bgw"
-  "psi-bgw-parabands"
-  "psi-bgw-epsilon"
-  "psi-bgw-sigma"
-  "psi-bgw-gw-conv-sigma"
-  "psi-bgw-gw-conv-epsilon"
-  "psi-bgw-gw-conv-analyze"
-)
+# Step 4: Clean up old psi-* symlinks and install rubato-* skills
+printf "${YELLOW}[4/4] Installing skills (symlinks)...${NC}\n"
 
+# Remove stale psi-* symlinks that point into this repo
+for link in "$TARGET_DIR"/psi-*; do
+  if [[ -L "$link" ]]; then
+    LINK_TARGET="$(readlink "$link" 2>/dev/null || true)"
+    if [[ "$LINK_TARGET" == "$SCRIPT_DIR"* ]]; then
+      rm "$link"
+      printf "${YELLOW}  ✗ Removed old symlink: $(basename "$link")${NC}\n"
+    fi
+  fi
+done
+
+# Auto-discover all rubato-* skill directories
 INSTALLED_COUNT=0
-for skill in "${SKILLS_TO_INSTALL[@]}"; do
-  SOURCE="$SCRIPT_DIR/skills/$skill"
-  if [[ ! -d "$SOURCE" ]]; then
-    printf "${RED}✗ Skill directory not found: $SOURCE${NC}\n"
-    exit 1
+for SOURCE in "$SCRIPT_DIR"/skills/rubato-*; do
+  [[ -d "$SOURCE" ]] || continue
+
+  SKILL_NAME="$(basename "$SOURCE")"
+  LINK_PATH="$TARGET_DIR/$SKILL_NAME"
+
+  # Remove existing (symlink or directory) before linking
+  if [[ -L "$LINK_PATH" ]] || [[ -d "$LINK_PATH" ]]; then
+    rm -rf "$LINK_PATH"
   fi
 
-  cp -r "$SOURCE" "$TARGET_DIR/"
-  printf "${GREEN}  ✓ $skill${NC}\n"
-  INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
+  ln -sfn "$SOURCE" "$LINK_PATH"
+  printf "${GREEN}  ✓ $SKILL_NAME${NC}\n"
+  ((INSTALLED_COUNT++))
 done
+
 printf "${GREEN}✓ Installed $INSTALLED_COUNT skills${NC}\n"
 echo ""
 
@@ -135,9 +148,13 @@ printf "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 printf "${GREEN}Installation complete!${NC}\n"
 printf "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 echo ""
+printf "Skills are symlinked from:\n"
+printf "  ${BLUE}$SCRIPT_DIR/skills/${NC}\n"
+printf "To update, just run ${YELLOW}git pull${NC} in this repo.\n"
+printf "To uninstall, run ${YELLOW}./install.sh --uninstall${NC}\n"
+echo ""
 printf "${BLUE}Documentation:${NC}\n"
 echo ""
 echo "  README.md          - Overview and quick reference"
-echo "  PSI.md          - Project configuration guide"
 echo "  skills/*/SKILL.md  - Individual skill documentation"
 echo ""

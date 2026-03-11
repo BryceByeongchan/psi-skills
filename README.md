@@ -20,7 +20,7 @@ RUBATO is a collection of [Claude Code](https://claude.ai/code) slash commands (
 ## Setup
 
 ```bash
-git clone https://github.com/BryceByeongchan/rubato-skills.git ~/tools/rubato
+git clone https://github.com/bychanlee/rubato-skills.git ~/tools/rubato
 cd ~/tools/rubato && ./install.sh
 ```
 
@@ -81,6 +81,7 @@ Each command is **independent** — use whichever you need, whenever you need it
 | `/rubato:bgw-gw-conv-sigma` | Convergence sweep: sigma-only (fixed epsmat) |
 | `/rubato:bgw-gw-conv-epsilon` | Convergence sweep: epsilon+sigma (coarse q-grid) |
 | `/rubato:bgw-gw-conv-analyze` | Parse `sigma.out` -> QP gap convergence table |
+| `/rubato:bgw-plotbands-gw-dft` | Plot DFT vs GW band structure overlay from QE XML + `bandstructure.dat` |
 
 ---
 

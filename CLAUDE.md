@@ -21,7 +21,8 @@ skills/
 ├── rubato-bgw-absorption/        # Generate and validate absorption.inp (BSE absorption)
 ├── rubato-bgw-gw-conv-sigma/     # Convergence sweep: sigma-only (fixed epsmat)
 ├── rubato-bgw-gw-conv-epsilon/   # Convergence sweep: epsilon+sigma (coarse q-grid)
-└── rubato-bgw-gw-conv-analyze/   # Parse sigma.out → QP gap convergence table
+├── rubato-bgw-gw-conv-analyze/   # Parse sigma.out → QP gap convergence table
+└── rubato-bgw-plotbands-gw-dft/  # Plot DFT vs GW band structure overlay
 ```
 
 Each directory contains:

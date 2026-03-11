@@ -135,18 +135,18 @@ def plot_bands(xml_file, labels=None, erange=(-4, 4), out=None, title=None, spin
     fig, ax = plt.subplots()
 
     for ib in range(e.shape[1]):
-        ax.plot(kpath, e[:, ib], color='blue', linewidth=0.6)
+        ax.plot(kpath, e[:, ib], color='blue', lw=1.5)
 
     if labels is not None:
         tick_x = get_hsym_tick_x(kpath, len(labels))
         for x in tick_x:
-            ax.axvline(x=x, color='k', linewidth=0.5, linestyle='-')
+            ax.axvline(x=x, color='grey', lw=0.5, ls='--')
         ax.set_xticks(tick_x)
         ax.set_xticklabels(labels, fontsize=10)
     else:
         ax.set_xticks([])
 
-    ax.axhline(y=0, color='k', linewidth=0.5, linestyle='--', alpha=0.6)
+    ax.axhline(y=0, color='grey', ls=':')
     ax.set_xlim(kpath[0], kpath[-1])
     ax.set_ylim(erange[0], erange[1])
     ax.set_ylabel('Energy (eV)', fontsize=10)

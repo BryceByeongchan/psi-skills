@@ -192,6 +192,7 @@ Keywords were extracted from:
 ## Authors
 
 - **Byeongchan Lee** (bychan.lee@sogang.ac.kr, https://brycebyeongchan.github.io/)
+- All of our Sogang-QMP members
 
 ## License
 

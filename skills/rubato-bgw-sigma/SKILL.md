@@ -27,7 +27,8 @@ rubato:bgw-sigma validate:<input_file>
 - `calc_id:cNNN` — Save `sigma.inp` to `calc_db/{calc_id}/input/`. If omitted, save to current directory.
 - `frequency_dependence:N` — 1 = GPP (default), 2 = full-frequency. Must match the parent epsilon `frequency_dependence`.
 - `kpoints:...` — K-points for QP correction. If not given, **you must ask the user**.
-- `diag:...` — Band indices for QP correction. If not given, **you must ask the user**.
+- `band_index_min:N` — Minimum band index for QP correction. If not given, **you must ask the user**.
+- `band_index_max:N` — Maximum band index for QP correction. If not given, **you must ask the user**.
 - `mode:convergence` — Convergence test mode: use only VBM + CBM k-points in kpoints block (fast).
 
 ## Execution — Generate Mode
@@ -43,8 +44,8 @@ If `parent_epsilon:cNNN` is given, read `calc_db/{epsilon_dir}/input/epsilon.inp
 If `kpoints` are not specified, ask:
 > "Please provide the k-points for QP correction. Format per line: `kx ky kz  divisor`. For production, include all nscf k-points. For convergence tests, include only VBM and CBM k-points."
 
-If `diag` bands are not specified, ask:
-> "Please provide the band indices for QP correction (one per line in the `begin diag` block). These are the bands for which Eqp0 and Eqp1 are computed."
+If `band_index_min` and `band_index_max` are not specified, ask:
+> "Please provide band_index_min and band_index_max for QP correction. These define the range of bands for which Eqp0 and Eqp1 are computed."
 
 ### Step 3: Construct sigma.inp
 
@@ -55,15 +56,15 @@ number_bands             {number_bands}
 
 frequency_dependence     {frequency_dependence}
 
+band_index_min       {band_index_min}
+band_index_max       {band_index_max}
+
 begin kpoints
   {k-points}
 end
-
-begin diag
-  {band indices}
-end
 ```
 
+- `band_index_min` / `band_index_max` define the range of bands for diagonal QP corrections.
 - `bare_coulomb_cutoff` defaults to `screened_coulomb_cutoff`. Set them equal unless the user requests otherwise.
 - `frequency_dependence`: 1 = GPP (Hybertsen-Louie, default), 2 = full-frequency contour deformation.
 
@@ -100,7 +101,7 @@ python {skill_dir}/bgw_validate.py '{"mode": "validate", "input_file": "<path>",
 - `number_bands` must be <= `epsilon.number_bands`. If parent is accessible, check.
 - `frequency_dependence` must match epsilon: epsilon 0 -> sigma 1 (GPP), epsilon 2 -> sigma 2 (FF).
 - The kpoints block must not be empty.
-- The diag block must not be empty.
+- `band_index_min` and `band_index_max` must be present.
 - `epsilon_cutoff` should NOT appear in sigma.inp (that is an epsilon-only keyword).
 
 ### Step 3: Report results
@@ -124,16 +125,12 @@ Each line in the `begin kpoints ... end` block:
 kx  ky  kz  divisor
 ```
 
-## Diag Block Format
+## Band Index Keywords
 
-Each line in the `begin diag ... end` block is a single band index:
+Use `band_index_min` and `band_index_max` to specify the range of bands for diagonal QP corrections:
 ```
-begin diag
-  7
-  8
-  9
-  10
-end
+band_index_min  52
+band_index_max  53
 ```
 
 ## Frequency Dependence Mapping
@@ -148,14 +145,14 @@ end
 When `mode:convergence` is given:
 - Include only the VBM and CBM k-points in the kpoints block.
 - Ask user for: `vbm_kpt` and `cbm_kpt`.
-- The `diag` block should include the VBM and CBM band indices.
+- Set `band_index_min` to VBM band index, `band_index_max` to CBM band index.
 
 ## Rules
 
 - **`screened_coulomb_cutoff` <= `epsilon_cutoff`.** Enforce this constraint.
 - **`number_bands` <= `epsilon.number_bands`.** Enforce this constraint.
 - **`bare_coulomb_cutoff` defaults to `screened_coulomb_cutoff`.** Only separate them if the user requests.
-- **The kpoints and diag blocks are required.** If not provided, ask the user.
+- **The kpoints block, `band_index_min`, and `band_index_max` are required.** If not provided, ask the user.
 - **`frequency_dependence` must be consistent with parent epsilon.** Warn if mismatched.
 - **Show the complete sigma.inp before saving.** Never write without user confirmation.
 - **When saving to a calc directory**, always use the `input/` subdirectory: `calc_db/{calc_id}/input/sigma.inp`.

@@ -32,7 +32,7 @@ _LABEL_MAP = {
     'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D',
     'H': 'H', 'K': 'K', 'L': 'L', 'M': 'M',
     'R': 'R', 'S': 'S', 'T': 'T', 'U': 'U',
-    'V': 'V', 'W': 'W', 'X': 'X', 'Y': 'Y', 'Z': '$\\mathit{Z}$',
+    'V': 'V', 'W': 'W', 'X': 'X', 'Y': 'Y', 'Z': 'Z',
 }
 
 
@@ -139,19 +139,29 @@ def plot_bands(xml_file, labels=None, erange=(-4, 4), out=None, title=None, spin
 
     if labels is not None:
         tick_x = get_hsym_tick_x(kpath, len(labels))
+        # Merge labels that are too close (e.g. "Γ" and "Z" → "Γ|Z")
+        min_gap = (kpath[-1] - kpath[0]) * 0.04
+        merged_x, merged_labels = [], []
+        for x, lbl in zip(tick_x, labels):
+            if merged_x and (x - merged_x[-1]) < min_gap:
+                merged_labels[-1] = f'{merged_labels[-1]}|{lbl}'
+                merged_x[-1] = (merged_x[-1] + x) / 2
+            else:
+                merged_x.append(x)
+                merged_labels.append(lbl)
         # Skip vlines at first/last k-point (borders already serve as boundary)
-        for x in tick_x[1:-1]:
+        for x in merged_x[1:-1]:
             ax.axvline(x=x, color='grey', lw=0.5, ls='--')
-        ax.set_xticks(tick_x)
-        ax.set_xticklabels(labels, fontsize=10, fontfamily='serif')
+        ax.set_xticks(merged_x)
+        ax.set_xticklabels(merged_labels, fontsize=10)
     else:
         ax.set_xticks([])
 
     ax.axhline(y=0, color='grey', ls=':')
     ax.set_xlim(kpath[0], kpath[-1])
-    # Hide top/right spines for cleaner look (avoids spine overlapping Z label)
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
+    # Keep all four spines for a closed box
+    ax.tick_params(axis='x', top=False)
+    ax.tick_params(axis='y', right=False)
     ax.set_ylim(erange[0], erange[1])
     ax.set_ylabel('Energy (eV)', fontsize=10)
     ax.tick_params(axis='y', labelsize=9)
@@ -159,7 +169,7 @@ def plot_bands(xml_file, labels=None, erange=(-4, 4), out=None, title=None, spin
     if title:
         ax.set_title(title, fontsize=11)
 
-    plt.tight_layout()
+    plt.tight_layout(pad=0.5)
 
     if out is None:
         stem = xml_file.rsplit('.', 1)[0]
